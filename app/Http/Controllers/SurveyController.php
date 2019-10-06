@@ -20,9 +20,6 @@ use App\Suboption;
 
 class SurveyController extends Controller
 {
-    //!!!!!IMPORTANT!!!!!
-    //replace this with resource controller or do it manually later on
-
     public function index(){
         return view('pages.index');
     }
@@ -44,15 +41,15 @@ class SurveyController extends Controller
         if (isset($inputs['agreement'])){
             $request->validate($validated);
         }
-        
+
 
         #CALCULATION AFTER VALIDATION SUCCEEDS
         #calculates score of a filled survey
-        
+
         #to array
         $inputs = $request->toArray();
         //dd($inputs);
-        
+
         #function 'calculation' calculates the score of every section and returns array [number] => [points]
         $scores = $this->calculation($inputs);
 
@@ -69,10 +66,9 @@ class SurveyController extends Controller
             $totalResult += $pom;
         }
         // dd($totalResult);
-        //!!!!PRIDAT FLASH??
 
         #############
-        #### store into the db 
+        #### store into the db
         ########
         if (isset($inputs['agreement'])) {
             $person = $this->newPerson($request);
@@ -80,7 +76,7 @@ class SurveyController extends Controller
             $this->saveDemographicData($person->id, $inputs);
         }
         #########
-        
+
         #renders final responses to the user given the score
         $finaltext = $this->getSurveyResponse($totalResult, $inputs['who']);
 
@@ -96,10 +92,11 @@ class SurveyController extends Controller
 
         #max pts obtainable
         $max = $inputs['totalMaxPts'];
+        $ptsRecieved = $inputs['totalPts'];
 
-        // return view('pages.finished')->with(['texts' => $texts, 'finaltext' => $finaltext, 
+        // return view('pages.finished')->with(['texts' => $texts, 'finaltext' => $finaltext,
         //                                     'sections' => $sections, 'totalresult' => $totalResult, 'feedbacks' => $feedbacks]);
-        return view('dev.finished')->with(['texts' => $texts, 'finaltext' => $finaltext, 
+        return view('dev.finished')->with(['texts' => $texts, 'finaltext' => $finaltext, 'ptsRecieved' => $ptsRecieved, 'scores' => $scores,
                                             'sections' => $sections, 'totalresult' => $totalResult, 'feedbacks' => $feedbacks, 'max' => $max]);
     }
     /**
@@ -114,16 +111,20 @@ class SurveyController extends Controller
         return view('pages.index');
     }
 
+    ##NOT WORKING##
     private function calculation($inputs){
         #get all section ids
         $sections = DB::table('survey_subsections')->pluck('id');
         #number of sections
         $numSec = count($sections);
-        for ($i=0; $i < $numSec; $i++) { 
+        $capTest = 0;
+        for ($i=0; $i < $numSec; $i++) {
             $currentIdQ = ''; //empty array for every section
             $qsUsed = [];
             $id_section = '';
             $uncheckedScores = 0;
+            $count = 0;
+            $prevQ = NULL;
             $prefix = $sections[$i];
             $pattern = '/^'.$prefix.'\.*/i'; #regex: id_section + anything, any count; case insensitive
             $keys = array_keys($inputs); #keys from array, e.g. "age", "16_11",..
@@ -131,9 +132,10 @@ class SurveyController extends Controller
             $results = array_intersect_key($inputs, array_flip($allowed)); #function a_i_k_() compares the keys of two (or more) arrays, and returns the matches
             #now in $results we have filtered inputs, only those connected to current id_section
 
-            // dd($inputs);
+            
             $pom = 0;
-            foreach ($results as $key => $result) {
+            foreach ($results as $key => $result) { //dd($results);
+                $count += 1;
                 #one result is one score from one question + space + id_option of selected option
                 #split it by space
                 list($value, $id_option) = explode("_", $result);
@@ -141,9 +143,35 @@ class SurveyController extends Controller
                 list($id_section, $id_question) = explode("_", $key);
                 $qsUsed[] = $id_question;
                 $pom += $value;
+                if (empty($currentIdQ)) {$currentIdQ = $id_question;}
+
 
                 // test if $question is type 2
                 if ($this->isQtypeTwo($id_question)) {
+                    // test if pts are over capped (only at qs type 2)
+                    //TODO:
+                    // same q?
+                    // if ($id_question == $currentIdQ) {
+                    //     $capTest += $value;
+
+                    // } else if ($prevQ != NULL) {
+                    //     // find q $currentIdQ and get capped value
+                    //         $q = Question::find($prevQ);
+
+                    //         if ($q->capPts != NULL && $q->capPts < $capTest) {
+                    //             $pom -= $capTest - $q->capPts;
+                    //         }
+                    //         $capTest = 0;
+                    // }
+                    // //last item in section with capp pts
+                    // if ($count == count($results)) {
+                    //     $q = Question::find($currentIdQ);
+                    //     if ($q->capPts != NULL && $q->capPts < $capTest) {
+                    //         $pom -= $capTest - $q->capPts;
+                    //     }
+                    //     $capTest = 0;
+                    // }
+
                     // add all unchecked scores
                     if ($uncheckedScores == 0){
                         $uncheckedScores = $this->getUncheckedValues($id_question);
@@ -157,13 +185,15 @@ class SurveyController extends Controller
 
                     // has one feedback for the whole question based on pts check
                     // hasOneFeedback($id_question);
-
                 } else {
                     $pom += $uncheckedScores;
                     $uncheckedScores = 0;
                 }
 
-                $currentIdQ = $id_question; // test this somewhere??
+                if ($id_question != $currentIdQ) {
+                    $prevQ = $currentIdQ;
+                    $currentIdQ = $id_question; // test this somewhere??
+                }
             }
             // fetch all questions to the section with qtype_id 2
             //dd($inputs);
@@ -183,7 +213,6 @@ class SurveyController extends Controller
                 }
             }
             // add those points from questions type 2, that hasnt been calculated yet
-            //dd($sum);
             $pom += $sum;
             // add those points for unchecked options
             if ($uncheckedScores > 0) {
@@ -191,7 +220,7 @@ class SurveyController extends Controller
             }
             // final points for a section
             $scores[$sections[$i]] = $pom;
-               
+
         }
         //dd($scores);
         return $scores;
@@ -200,7 +229,7 @@ class SurveyController extends Controller
     private function isQtypeTwo($idq){
         $q = Question::find($idq);
 
-        return $q->qtype_id == 2; 
+        return $q->qtype_id == 2;
     }
 
     private function hasOneFeedback($idq){
@@ -241,13 +270,13 @@ class SurveyController extends Controller
         #number of sections
         $numSec = count($sections);
 
-        for ($i=0; $i < $numSec; $i++) { 
+        for ($i=0; $i < $numSec; $i++) {
             $prefix = $sections[$i];
             $pattern = '/^'.$prefix.'\.*/i'; #regex: id_section + anything, any count; case insensitive
             $keys = array_keys($inputs); #keys from array, e.g. "age", "16_11",..
             $allowed = preg_grep($pattern, $keys); #filter keys, we want only those that start with correct id_section
             $results = array_intersect_key($inputs, array_flip($allowed)); #function a_i_k_() compares the keys of two (or more) arrays, and returns the matches
-            
+
             #now in $results we have filtered inputs, only those connected to current id_section
             $pom = '';
             $options = [];
@@ -291,7 +320,7 @@ class SurveyController extends Controller
                 $sectionFeedbacks[] = [];
             }
         }
-        
+
         return $sectionFeedbacks;
     }
 
@@ -377,9 +406,9 @@ class SurveyController extends Controller
                         ->take(1)
                         ->get();
 
-        return $response;                
+        return $response;
     }
-    
+
     public function questionMaxPts($qid) {
         $question = Question::find($qid);
         $options = Option::where("question_id", $qid)->get();
@@ -390,8 +419,8 @@ class SurveyController extends Controller
                 $option->value > $max ? $max = $option->value : null;
             }
             return $question->weight * $max;
-        } else if ($question->qtype_id == 2) {   
-            $total = 0;   
+        } else if ($question->qtype_id == 2) {
+            $total = 0;
             foreach ($options as $key => $option) {
                 if ($option->value < $option->value_not_checked) {
                     $value = $option->value_not_checked;
@@ -400,7 +429,7 @@ class SurveyController extends Controller
                 } else {
                     $value = 0;
                 }
-                $total += $value; 
+                $total += $value;
             }
             return $question->weight * $total;
         } else if ($question->qtype_id == 3) {

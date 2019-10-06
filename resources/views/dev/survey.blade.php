@@ -2,10 +2,12 @@
 
 @section('content')
 
-{{-- dev --}}
-<script src="https://unpkg.com/vue"></script>
-{{-- production --}}
-{{-- <script src="https://cdn.jsdelivr.net/npm/vue@2.6.0"></script> --}}
+@if (App::environment('local')) 
+    <script src="https://unpkg.com/vue"></script>
+@else
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.0"></script>
+@endif
+
 <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 
 <div id="app" v-cloak>
@@ -16,6 +18,7 @@
     {{-- id for who the survey is --}}
     <input type="hidden" name="who" value="{{$whoName[0]->id}}">
     <input type="hidden" name="totalMaxPts" v-bind:value="totalMaxPts">
+    <input type="hidden" name="totalPts" v-bind:value="totalPts">
 
     @if (App::environment('local')) 
         <div style="display: none">@{{baseURL = ""}}</div>
@@ -218,12 +221,14 @@
                                                             }catch(Exception $e){
                                                                 $optvalue = 0;
                                                             }
-                                                        } else {
-                                                            $optvalue = $j;
-                                                        }
+                                                        } 
+                                                        // else {
+                                                        //     $optvalue = $j;
+                                                        //     $optvalue = 0;
+                                                        // }
                                                         // echo $optvalue;
                                                     ?>
-                                                    
+
                                                     <td class="tdbuttons vertical-inputcircle"><label><input type="radio" name="{{$question->subsection_id}} {{$question->question_id}} {{$i}}" value="{{$optvalue*$question->weight*$options[$question->question_id][$i]->value}}_{{$options[$question->question_id][$i]->id}}_{{$j}}"></label></td>
                                                 @endfor
                                             </tr>
@@ -323,21 +328,28 @@
                                             </div>
                                             <div v-else>
 
-                                                <div v-for="question in feedback">
-                                                    {{-- question type 3 (rate 1-5) --}}
-                                                    <div v-if="question.qtype == 3">
-                                                        <span class="justify">Line: @{{question.option}}</span> <br> <small>Your choice: @{{question.value}}</small> <br> 
-                                                        <div class="greenish">@{{question.feedback}}</div>
-                                                        <br>
+                                                    <div v-for="question in feedback">
+                                                        {{-- question type 3 (rate 1-5) --}}
+                                                        <div v-if="question.qtype == 3">
+                                                            <span class="justify">Line: @{{question.option}}</span> <br> <small>Your choice: @{{question.value}}</small> <br> 
+                                                            <div class="greenish">@{{question.feedback}}</div>
+                                                            <br>
+                                                        </div>
+        
+                                                        {{-- other question types --}}
+                                                        <div v-else>
+                                                            <div v-if="question.feedback">
+                                                                <small>Line: @{{question.option}}
+                                                                    <span v-if="question.qtype == 2">
+                                                                        <span v-if="question.selected"> (selected)</span><span v-else> (not selected)</span>
+                                                                    </span> 
+                                                                </small>
+                                                                <br> 
+                                                                <div class="greenish">@{{question.feedback}}</div>
+                                                                <br> 
+                                                            </div>
+                                                        </div>
                                                     </div>
-    
-                                                    {{-- other question types --}}
-                                                    <div v-else>
-                                                        <small>Your choice: @{{question.option}}</small> <br> 
-                                                        <div class="greenish">@{{question.feedback}}</div>
-                                                        <br> 
-                                                    </div>
-                                                </div>
 
                                             </div>
 
@@ -388,6 +400,7 @@ new Vue({
       countries: [],
       err: '',
       totalMaxPts: 0,
+      totalPts: 0,
       baseURL: '/survey'
     },
     methods: {
@@ -410,6 +423,9 @@ new Vue({
         },
         addToTotalPts(pts){
           this.totalMaxPts += pts;
+        },
+        addToPts(pts){
+          this.totalPts += pts;
         },
         nextPage(direction){
             this.msg = "";
@@ -563,6 +579,7 @@ new Vue({
                   // this.feedbacks = [];
                   //add to total pts
                   this.addToTotalPts(this.feedbacks[this.feedbacks.length-1][2]);
+                  this.addToPts(this.feedbacks[this.feedbacks.length-1][1]);
                   //console.log('totalMaxPts so far:' + this.totalMaxPts);
                   if (this.feedbacks.length < 1) {this.loadingDataMsg = "No evaluation for those questions. Please continue to the next section."}
               })

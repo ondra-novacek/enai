@@ -29,7 +29,6 @@ class PagesController extends Controller
 
     public function survey($who){
         $who = $this->determineWHO($who);
-        $view = $this->determineENV();
 
         if ($who == 0) { return redirect('/'); }
 
@@ -48,7 +47,7 @@ class PagesController extends Controller
             return redirect('/')->with('msg', 'No questions for this survey yet.');
         }
 
-        return view($view . 'survey')->with('options', $options)->with('sections', $sections)->with('whoName', $whoName)->with('demoquestions', $demoQuestions)->with('intro', $intro);
+        return view('dev.survey')->with('options', $options)->with('sections', $sections)->with('whoName', $whoName)->with('demoquestions', $demoQuestions)->with('intro', $intro);
     }
 
     #returns surveys for
@@ -103,18 +102,10 @@ class PagesController extends Controller
                             ->where('survey_qfor_question.qfor_id', '=', $who)
                             ->orderBy('survey_questions.created_at')
                             ->get();
-            // $pom = DB::table("survey_questions") 
-            //     ->select("*")             
-            //     ->join('survey_qfor_question', 'survey_questions.id', '=', 'survey_qfor_question.question_id')
-            //     ->join('survey_subsections', 'survey_questions.subsection_id', '=', 'survey_subsections.id')
-            //     ->where('survey_questions.subsection_id', $sub)
-            //     ->where('survey_qfor_question.qfor_id', '=', $who)
-            //     ->get();    
             if (count($pom) !== 0) { 
                 $sections[] = $pom;
             }   
         }
-        // dd($sections);
         return $sections;
         //one array for qtype id 1, second qtype id 2
     }
@@ -140,16 +131,6 @@ class PagesController extends Controller
         //$desc = Qfor::find(3)->select('description')->get();
         $desc = Qfor::where('id',$who)->select('description')->get();
         return $desc;
-    }
-
-    public function determineENV() {
-        $env = App::environment();
-        if ($env == 'local') {
-            $view = 'dev.';
-        } else {
-            $view = 'pages.';
-        }
-        return $view;
     }
 
     public function determineWHO($name) {

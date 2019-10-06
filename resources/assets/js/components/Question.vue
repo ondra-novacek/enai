@@ -514,12 +514,6 @@
             cursor: pointer;
         }
 
-        .cssbutton:hover {
-            /* color: #ce2b2b !important;
-            border-color: #ce2b2b !important;
-            transition: all 0.3s ease 0s; */
-        }
-
         .btncust{
             margin-top: 0;
         }

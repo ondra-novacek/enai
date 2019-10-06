@@ -5,10 +5,10 @@
               <a class="nav-link" href="http://academicintegrity.eu"><strong>ENAI</strong></a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="http://academicintegrity.eu/survey/edit"><strong>Menu</strong></a>
+              <a class="nav-link" href="/edit"><strong>Menu</strong></a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="http://academicintegrity.eu/survey"><strong>Tests</strong></a>
+                <a class="nav-link" href="/"><strong>Tests</strong></a>
             </li>
           </ul>
 
