@@ -7,7 +7,6 @@ function supportedBrowser() {
     browserName = platform.name;
     regex = /\d+/;
     version = platform.version.match(regex)[0];
-    console.log(browserName + '' + version);
 
     switch (browserName) {
       case 'Chrome':

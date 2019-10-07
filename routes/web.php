@@ -29,6 +29,7 @@ Route::get('logout', '\App\Http\Controllers\Auth\LoginController@logout')->name(
 #home -> requires user to be logged in (in construct there is middleware)
 Route::get('/edit', 'AdminController@index')->name('edit');
 
+#view for page if user entered page with unsupported broswer/browser version
 Route::get('/support', function () {
     return view('pages/notSupported');
 })->name('notsupported');

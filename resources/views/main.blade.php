@@ -11,10 +11,7 @@
             @include('partials._footer')
         </div>
         
-        
-        
         @yield('scripts')
-
     </body>
 
     <noscript>
@@ -22,7 +19,7 @@
             .fl-page {display:none;}
         </style>
         <div class="noscriptmsg">
-            You don't have javascript enabled. Please, turn javascript on in browser setting.
+            You don't have javascript enabled. Please, turn javascript on in browser settings.
         </div>
     </noscript>
 </html>

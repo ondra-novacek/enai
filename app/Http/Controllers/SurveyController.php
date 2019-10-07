@@ -93,11 +93,12 @@ class SurveyController extends Controller
         #max pts obtainable
         $max = $inputs['totalMaxPts'];
         $ptsRecieved = $inputs['totalPts'];
-
+        return redirect()->route('show')->with(['texts' => $texts, 'finaltext' => $finaltext, 'ptsRecieved' => $ptsRecieved,
+                                                     'totalresult' => $totalResult, 'max' => $max]);
         // return view('pages.finished')->with(['texts' => $texts, 'finaltext' => $finaltext,
         //                                     'sections' => $sections, 'totalresult' => $totalResult, 'feedbacks' => $feedbacks]);
-        return view('dev.finished')->with(['texts' => $texts, 'finaltext' => $finaltext, 'ptsRecieved' => $ptsRecieved, 'scores' => $scores,
-                                            'sections' => $sections, 'totalresult' => $totalResult, 'feedbacks' => $feedbacks, 'max' => $max]);
+        // return view('dev.finished')->with(['texts' => $texts, 'finaltext' => $finaltext, 'ptsRecieved' => $ptsRecieved, 'scores' => $scores,
+        //                                     'sections' => $sections, 'totalresult' => $totalResult, 'feedbacks' => $feedbacks, 'max' => $max]);
     }
     /**
      * Display the specified resource.
@@ -105,10 +106,10 @@ class SurveyController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
+
     public function show()
     {
-        // return to home, trting to enter the route for final results without filling out the form
-        return view('pages.index');
+        return view('dev.finished');
     }
 
     ##NOT WORKING##
