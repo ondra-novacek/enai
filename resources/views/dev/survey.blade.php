@@ -584,7 +584,7 @@ new Vue({
                   if (this.feedbacks.length < 1) {this.loadingDataMsg = "No evaluation for those questions. Please continue to the next section."}
               })
               .catch(err => {console.log(err);this.loadingDataMsg = "Something went wrong and we could not fetch the feedbacks for this section. Please continue to the next section."});
-            } catch {
+            } catch (er){
                   //nothing here
             }
             

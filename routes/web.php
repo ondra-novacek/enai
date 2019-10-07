@@ -29,6 +29,10 @@ Route::get('logout', '\App\Http\Controllers\Auth\LoginController@logout')->name(
 #home -> requires user to be logged in (in construct there is middleware)
 Route::get('/edit', 'AdminController@index')->name('edit');
 
+Route::get('/support', function () {
+    return view('pages/notSupported');
+})->name('notsupported');
+
 //Route::resource('/admin', 'AdminController');
 
 #survey starting tests
