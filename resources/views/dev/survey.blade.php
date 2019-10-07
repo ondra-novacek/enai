@@ -264,11 +264,11 @@
     @endfor 
 
     {{-- step by step indicators --}}
-    <div class="" style="text-align:center;margin-top:40px;">
+    {{-- <div class="" style="text-align:center;margin-top:40px;">
         @for ($i = -1; $i < (count($sections)); $i++)
         <span class="step" :class="{currstep: showSection == {{$i}}}"></span>
         @endfor
-    </div>
+    </div> --}}
 
   </form>  
   
@@ -371,6 +371,7 @@
                             <div class="offset-md-1 col-md-11" v-else>
                                 <br>
                                 <p>@{{loadingDataMsg}}</p>
+                                <div class="loader"></div>
                                 <button type="button" class="btn btn-secondary" @click="continueWithForm()" v-if="showSection < {{count($sections)-1}}">Continue to next section</button>
                                 <button type="submit" class="btn btn-success darkblue" @click="submitForm()" v-else>Finish test</button>
                             </div>
@@ -381,7 +382,12 @@
         </div>
 </div> 
 
-
+    {{-- step by step indicators --}}
+    <div class="" style="text-align:center;margin-top:40px;">
+        @for ($i = -1; $i < (count($sections)); $i++)
+        <span class="step" :class="{currstep: showSection == {{$i}}}"></span>
+        @endfor
+    </div>
 </div>
 
 <script>
