@@ -18,6 +18,7 @@
             <input type="hidden" name="who" value="{{$whoName[0]->id}}">
             <input type="hidden" name="totalMaxPts" v-bind:value="totalMaxPts">
             <input type="hidden" name="totalPts" v-bind:value="totalPts">
+            <input type="hidden" name="htmlText" v-bind:value="htmlText">
 
             @if (App::environment('local')) 
                 <div style="display: none">@{{baseURL = ""}}</div>
@@ -65,18 +66,19 @@ new Vue({
       err: '',
       totalMaxPts: 0,
       totalPts: 0,
-      baseURL: '/survey'
+      baseURL: '/survey',
+      htmlText: ''
     },
     methods: {
-        getData(){
-            axios.get(this.baseURL + '/api/surveydata/' + 1)
-            .then((response)=>{
-                this.who = response.data[0];
-                this.questions = response.data[1];
-                this.options = response.data[2];
-            })
-            .catch((err)=>{console.log(err)});
-        },
+        // getData(){
+        //     axios.get(this.baseURL + '/api/surveydata/' + 1)
+        //     .then((response)=>{
+        //         this.who = response.data[0];
+        //         this.questions = response.data[1];
+        //         this.options = response.data[2];
+        //     })
+        //     .catch((err)=>{console.log(err)});
+        // },
         getCountries(){
             axios.get('https://restcountries.eu/rest/v2/all')
             .then(response => {
@@ -220,25 +222,38 @@ new Vue({
         },
         submitForm(){
             document.getElementById("surForm").submit();
+            
         },
         getFeedbacks(answers, notChecked){
             this.loadingDataMsg = "Loading...";  
             //console.log(answers);
             //console.log(notChecked);
             try{
+                var that = this;
               axios.post(this.baseURL + '/api/evaluateOneSection', {selectedOptions: answers, forgottenQs: notChecked, who: {{$whoName[0]->id}} })
                 .then(response => {
-                  console.table(response.data);
+                  //console.table(response.data);
                   this.feedbacks = response.data;
-                  //console.log('Response data: ', this.feedbacks);
+                  //console.log(this.feedbacks);
                   // this.feedbacks = [];
                   //add to total pts
                   this.addToTotalPts(this.feedbacks[this.feedbacks.length-1][2]);
                   this.addToPts(this.feedbacks[this.feedbacks.length-1][1]);
                   //console.log('totalMaxPts so far:' + this.totalMaxPts);
                   if (this.feedbacks.length < 1) {this.loadingDataMsg = "No evaluation for those questions. Please continue to the next section."}
+                  var vm = that;
+                  setTimeout( () => {
+                    vm.htmlText += '<h3>' + (this.showSection + 1) + '. ' + this.feedbacks[0][0].subsection + '</h3>' + document.getElementById('printJS-form').innerHTML;
+                    
+                    // console.log(vm.htmlText + 'test');
+                  }, 0);
+                //   that.htmlText = document.getElementById('printJS-form').innerHTML;
               })
-              .catch(err => {console.log(err);this.loadingDataMsg = "Something went wrong and we could not fetch the feedbacks for this section. Please continue to the next section."});
+              .catch(err => {
+                  //console.log(err);
+                  this.loadingDataMsg = "Something went wrong and we could not fetch the feedbacks for this section. Please continue to the next section.";
+                  document.getElementsByClassName('loader')[0].style.display = 'none';
+              });
             } catch (er){
                   //nothing here
             }

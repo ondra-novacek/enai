@@ -17,6 +17,7 @@ use App\Subsection;
 use App\Option;
 use App\Question;
 use App\Suboption;
+use App\Qfor;
 
 class SurveyController extends Controller
 {
@@ -93,8 +94,15 @@ class SurveyController extends Controller
         #max pts obtainable
         $max = $inputs['totalMaxPts'];
         $ptsRecieved = $inputs['totalPts'];
+        $htmlText = $inputs['htmlText'];
+        $who = $this->getWhoName($inputs['who']);
+
+        if (strpos($ptsRecieved, '.') !== false) {
+            $ptsRecieved = strval(round(floatval($ptsRecieved),1));
+        } 
+
         return redirect()->route('show')->with(['texts' => $texts, 'finaltext' => $finaltext, 'ptsRecieved' => $ptsRecieved,
-                                                     'totalresult' => $totalResult, 'max' => $max]);
+                                                     'totalresult' => $totalResult, 'max' => $max, 'htmlText' => $htmlText, 'who' => $who]);
         // return view('pages.finished')->with(['texts' => $texts, 'finaltext' => $finaltext,
         //                                     'sections' => $sections, 'totalresult' => $totalResult, 'feedbacks' => $feedbacks]);
         // return view('dev.finished')->with(['texts' => $texts, 'finaltext' => $finaltext, 'ptsRecieved' => $ptsRecieved, 'scores' => $scores,
@@ -241,6 +249,11 @@ class SurveyController extends Controller
         }
 
         return;
+    }
+
+    private function getWhoName($id){
+        $who = Qfor::find($id);
+        return $who->name;
     }
 
     private function getUncheckedValues($idq){

@@ -457,6 +457,17 @@ class ApiController extends Controller
                 if (sizeof($result) < 1) {continue;}
                 $result[0]->pts = $result[0]->qweight * $result[0]->ovalue * $result[0]->sovalue;
                 // plus we need to keep track of selected rating
+
+                 #maxPts per line
+                 $maxPtsPerLine = 0;
+                 $subQuestions = Suboption::where("option_id", $parts[0])->get();
+                 foreach ($subQuestions as $subquestion) {
+                     if ($subquestion->value > $maxPtsPerLine) {
+                         $maxPtsPerLine = $subquestion->value;
+                     }
+                 }
+                 $result[0]->maxPtsPerLine = $maxPtsPerLine * $result[0]->qweight;
+
                 
                 $value = DB::table("survey_question_columns")
                   ->where("question_id", $result[0]->qid)
@@ -476,10 +487,10 @@ class ApiController extends Controller
                 ,"survey_questions.hasFeedback AS hasFeedback", "survey_questions.feedbackSplitValue AS splitPts", "survey_questions.feedbackOriginal AS originalFB", "survey_questions.feedbackAlt AS altFB", "survey_questions.equalSignOriginal AS equalSign"
                 ,"survey_questions.weight AS weight", "survey_options.value AS value", "survey_questions.qtype_id AS qtype" ,"survey_subsections.name AS subsection"
                 , "survey_questions.id AS qid", "survey_options.id AS oid", "survey_questions.text AS question", "survey_options.feedback AS feedback", "survey_subsections.id AS sid"
-                , "survey_options.name AS option", "survey_questions.capPts as cap")
+                , "survey_options.name AS option", "survey_questions.capPts as cap", "survey_options.value_not_checked AS value_not_checked")
                 ->get();
 
-                $result[0]->pts = $result[0]->weight*$result[0]->value;            
+                $result[0]->pts = $result[0]->weight*$result[0]->value;   
             }
 
             // test whether it's question type 2 (any from many) - in that case, return all feedbacks to that question
@@ -507,7 +518,7 @@ class ApiController extends Controller
                 , "survey_questions.feedbackOriginal AS originalFB", "survey_questions.feedbackAlt AS altFB"
                 , "survey_questions.equalSignOriginal AS equalSign", "survey_questions.qtype_id AS qtype", "survey_subsections.name AS subsection"
                 , "survey_questions.id AS qid", "survey_options.id AS oid", "survey_questions.text AS question"
-                , "survey_options.feedback_not_checked AS feedback", "survey_options.value_not_checked AS value_not_checked", "survey_questions.capPts as cap"
+                , "survey_options.feedback_not_checked AS feedback", "survey_options.value_not_checked AS value_not_checked", "survey_questions.capPts as cap", "survey_options.value AS value"
                 , "survey_subsections.id AS sid", "survey_options.name AS option")
                 ->get();
                 
@@ -570,7 +581,7 @@ class ApiController extends Controller
                 //  })
                 // ->where("survey_options.feedback_not_checked", "<>", "") //filter those without feedback
                 //->orWhere("survey_questions.hasFeedback", "1")
-                ->select(DB::raw('0 as selected'), DB::raw('0 as pts'), "survey_options.value_not_checked AS value_not_checked", "survey_questions.weight AS qweight"
+                ->select(DB::raw('0 as selected'), DB::raw('0 as pts'), "survey_options.value_not_checked AS value_not_checked", "survey_questions.weight AS qweight", "survey_options.value AS value"
                     ,"survey_questions.hasFeedback AS hasFeedback", "survey_questions.feedbackSplitValue AS splitPts", "survey_questions.feedbackOriginal AS originalFB", "survey_questions.feedbackAlt AS altFB", "survey_questions.equalSignOriginal AS equalSign"
                     , "survey_questions.qtype_id AS qtype", "survey_subsections.name AS subsection", "survey_questions.id AS qid", "survey_options.id AS oid", "survey_subsections.id AS sid"
                     , "survey_questions.text AS question", "survey_options.feedback_not_checked AS feedback"
@@ -589,7 +600,12 @@ class ApiController extends Controller
                     }
                     $question[] = $option;
                 }  
-                $question[0]->pts += $sumWOfb;
+                if (!isset($question[0])) {
+                    $question[0] = $opts[0];
+                    $question[0]->pts += $sumWOfb;
+                } else {
+                    $question[0]->pts += $sumWOfb;
+                }
                 $sumWOfb = 0;
             } else {
                 // NS = not selected
@@ -627,6 +643,8 @@ class ApiController extends Controller
                 $question[0]->ptsFinal = $pom;
                 if ($question[0]->cap > 0 && $pom > $question[0]->cap) {
                     $question[0]->ptsFinal = $question[0]->cap;
+                    $question[0]->max = $question[0]->cap;
+                } elseif ($question[0]->cap > 0) {
                     $question[0]->max = $question[0]->cap;
                 }
             } else {

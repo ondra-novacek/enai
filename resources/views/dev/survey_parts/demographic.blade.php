@@ -4,7 +4,7 @@
                 <div class="test okraj col-md-12"> 
                     <div class="row"> 
                             <div class="offset-md-1 col-md-11">  
-                            <h1>Academic Integrity: Survey for {{$whoName[0]->name}}</h1>  
+                            <h1>Academic Integrity Self-Evaluation Tool for {{$whoName[0]->name}}s</h1>  
                             <br>
                             </div>
 
@@ -25,6 +25,7 @@
         <br><br>     
         <label for="gender"><strong>Gender:</strong></label>
             <select class="custom-select" name='gender' id='gender'>
+                <option value='not_specified'>not specified</option>
                 <option value='male'>male</option>
                 <option value='female'>female</option>
             </select>
@@ -56,8 +57,7 @@
     <div class="form-check">
         <input class="form-check-input" type="checkbox" value="1" name="agreement" id="agreement">
         <label class="form-check-label" for="agreement">
-               <small>I am giving my consent to the processing of personal data to 
-                have surveys and marketing, statistical and other research carried out.</small>
+               <small>I am giving my consent to save all my answers for further processing, analysis and research carried out by the European Network for Academic Integrity and/or its member institutions.</small>
         </label>
     </div>
     <br>

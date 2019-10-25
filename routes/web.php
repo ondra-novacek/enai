@@ -14,6 +14,9 @@
 #starting page
 Route::get('/', 'PagesController@index');
 
+#learn more pdf link
+Route::get('/learnmore', 'DownloadFilesController@downloadInfo')->name('learnmore');
+
 #results of a survey
 Route::post('/survey', 'SurveyController@store')->name('store');
 Route::get('/survey', 'SurveyController@show')->name('show');

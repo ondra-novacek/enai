@@ -17,7 +17,7 @@
 </head>
 <body>
     <p>This web application doesn't support the browser you are currently using.
-        Please update the broswer or you different one.
+        Please update the broswer or use different one.
     </p>
     
     <p>Supported browsers: </p>
@@ -46,7 +46,11 @@
             <td>Opera</td>
             <td>>= 38</td>
         </tr>
-    </table>    
+    </table>  
+    
+    <p>
+        Mobile browsers are currently also not supported.
+    </p>
 </body>
 </html>
 

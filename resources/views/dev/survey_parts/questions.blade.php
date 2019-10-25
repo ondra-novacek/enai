@@ -7,7 +7,7 @@
                   <div class="test okraj col-md-12"> 
                      <div class="row"> 
                            <div class="offset-md-1 col-md-11">  
-                           <h1>Academic Integrity: Survey for {{$whoName[0]->name}}</h1>  
+                           <h1>Academic Integrity Self-Evaluation Tool for {{$whoName[0]->name}}s</h1>  
                            <br>
                            </div>
                            {{-- SECTION HEADER --}}

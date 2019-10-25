@@ -30,6 +30,7 @@
             <div v-for="(question,index) in section" class="grid-container">
                 <!-- <question @refresh="refresh()" v-for="question in section" :key="question.question_id" :qtypes="qtypes" :question="question" :opts="getOptions(question.question_id)"></question> -->
                 <div class="item1">
+                        <button class="btncust btn btn-sm" style="text-align:left" @click="openModal(question.question_id)">Modal</button>
                     <button class="btncust btn btn-sm" style="text-align:left" title="edit this question" @click="questionClicked(index)"><i class="fas fa-edit"></i></button>
                     <button class="btncust btn btn-sm" style="text-align:left" title="delete this question" @click="deleteQuestion(question.question_id)"><i class="fas fa-trash"></i></button>
                     <button class="btncust btn btn-sm" style="text-align:left" title="change this question into different section" @click="shiftQuestionClicked(index)"><i class="fas fa-exchange-alt"></i></button>
@@ -39,7 +40,14 @@
                     <span @click="questionClicked(index)">{{question.text}}</span>
                </div>
                 
-
+                    <!-- <sweet-modal overlay-theme="dark" modal-theme="red" :ref="'modal-' + question.question_id" width="80%">
+                        <sweet-modal-tab title="Question" id="tab1">
+                            <TestComponent></TestComponent>
+                        </sweet-modal-tab>
+                        <sweet-modal-tab title="Options" id="tab2">Contents of Tab 2</sweet-modal-tab>
+                    </sweet-modal> -->
+                
+                
                 <transition name="fade" >
                     <shiftquestion key="shift" v-if="showShiftQ === index" @close="showShiftQ = ''" :key="question.question_id" :question="question"></shiftquestion>
                     <question key="question" v-if="showQuestion === index" @close="showQuestion = ''" :key="question.question_id" :qtypes="qtypes" :question="question" :opts="getOptions(question.question_id)"></question>
@@ -67,7 +75,9 @@
     import ExampleComponent from './ExampleComponent.vue';
     import AddQuestion from './AddQuestion.vue';
     import ShiftQuestion from './ShiftQuestion.vue';
+    import TestComponent from './TestComponent.vue';
     import EventBus from '../event-bus.js';
+    // import { SweetModal, SweetModalTab } from 'sweet-modal-vue';
 
     export default {
         data(){
@@ -85,7 +95,10 @@
             'question': Question,
             'addquestion': AddQuestion,
             'examplecomponent': ExampleComponent,
-            'shiftquestion': ShiftQuestion
+            'shiftquestion': ShiftQuestion,
+            TestComponent,
+            // SweetModal,
+		    // SweetModalTab
         },
         props: {
             section: Array,   
@@ -178,15 +191,26 @@
                 }else{
                     this.showShiftQ = index;
                 }
+            },
+            openModal(id){
+                var name = 'modal-' + id;
+                this.$refs[name][0].open();
             }
+        },
+        mounted(){
         }
     }
 </script>
 
 <style scoped>
+
 .sect{
-    min-height: 150px;
+    /*min-height: 150px;*/
 }
+
+.sweet-custom{
+        background-color: red !important;
+    }
 
 .btn_custom{
     margin-bottom: 10px;

@@ -1,3 +1,5 @@
+{{-- printJS --}}
+<script src="{{asset('js/print.min.js')}}"></script>
 {{-- platform.js --}}
 <script src="{{asset('js/platform.js')}}"></script>
 {{-- jquery --}}

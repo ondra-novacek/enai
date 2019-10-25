@@ -1,5 +1,5 @@
 <template>
-    <td colspan=3>
+    <td colspan=3 class="tdt">
             <div class="demosection">    
                 <div>
                     <button class="btn btn-sm btn-outline-secodary btncustone" style="text-align:left" title="edit this question" disabled><i class="fas fa-edit"></i></button>
@@ -40,7 +40,7 @@
                 </transition>
                 
             </div>    
-        </td>
+    </td>
 </template>
 
 <script>
@@ -112,47 +112,6 @@
 </script>
 
 <style scoped>
-    /*
-.demosection {
-    padding: 15px;
-}
-
-.questions{
-    margin-top: 5px;
-}
-
-.sections {
-    width: 100%;
-    margin-left: 0%;
-    padding-right: 25%;
-    border: 1px solid black;
-    border-collapse: collapse;
-    margin-top: 1%;
-    background: white;
-    border-radius: 5px;
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-}
-
-td { 
-    padding: 15px;
-    border: 1px solid black;
-}
-
-
-th {
-    background-color: #6B6E70;
-    color: white;
-}  
-
-thead:hover {
-    cursor: pointer;
-}
-
-tbody {
-    padding: 5px;
-    margin: 5px;
-}
-*/
 .btn_custom{
     margin-bottom: 10px;
     padding: 5px;
@@ -196,6 +155,28 @@ tbody {
     padding-right: 10px !important;
     margin-right: 0px !important;
     margin-left: 0px !important;
+} 
+td {
+    padding: 0px;
+    border: 0px solid black;
+    transition: 0.3s;
+}
+
+td div {
+    max-height: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: max-height 0.3s, padding 0.3s;
+}
+
+td.active div {
+  max-height: 500px;
+  padding: 3px 10px;
+  transition: max-height 0.6s, padding 0.6s;
+}
+
+td.active {
+    border-bottom: 1px black solid;
 }
 
 </style>

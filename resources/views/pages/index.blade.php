@@ -85,11 +85,11 @@
       </div>
       <br>
       <div class="centered">
-                  <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#learnMore">Learn more</button>
+            <a href="{{ url('learnmore') }}" class="btn btn-info btn-lg">Learn more</a>
       </div>
       
     <!-- Modal -->
-    <div class="modal fade" id="learnMore" tabindex="-1" role="dialog" aria-labelledby="learnMoreTitle" aria-hidden="true">
+    {{-- <div class="modal fade" id="learnMore" tabindex="-1" role="dialog" aria-labelledby="learnMoreTitle" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
           <div class="modal-header">
@@ -108,5 +108,6 @@
           </div>
         </div>
       </div>
-    </div>
+    </div> --}}
 @stop
+

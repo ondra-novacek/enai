@@ -3,8 +3,16 @@
 
     @include('partials._head')
     <body>   
+        
         @include('partials._javascript')
         @include('javascript.browserSupport')
+
+        @if(Request::path() === '/') 
+            @include('javascript.randAvatars')
+        @endif
+        @if(Route::current()->getName() === 'show') 
+            @include('javascript.printResults')
+        @endif
 
         <div class="container fl-page">
             @yield('content')

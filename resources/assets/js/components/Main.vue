@@ -1,5 +1,6 @@
 <template>
-    <div class="container bgrclr">
+<div>
+    <div v-if="typeof whoname != 'undefined'" class="container bgrclr">
             <br><br>
 
         <!-- HEADING PART -->
@@ -31,6 +32,12 @@
         <!-- <button class="btn btn-light" @click="toTheTop()">To the top</button> -->
         <!-- <br> -->
     </div>
+    <div v-else>
+        <p>
+            Wrong URL parameters. Do not change those.
+        </p>
+    </div>
+</div>
 </template>
 
 <script>
@@ -39,7 +46,9 @@
     import Sect from './Sect.vue';
     import AddNewSection from './AddNewSection';
     import EventBus from '../event-bus.js';
+
     // import DemographicSection from './DemographicSection.vue';
+
 
     export default {
         data (){
@@ -61,7 +70,7 @@
             'heading': Heading,
             'sections': Sections,
             'sect': Sect,
-            'addnewsection': AddNewSection,
+            'addnewsection': AddNewSection
             // 'demographicsection': DemographicSection
         },
         beforeRouteEnter (to, from, next) {

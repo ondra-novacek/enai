@@ -11,11 +11,11 @@
                 <tbody>
                         <!-- DEMO SECTION -->
                         <tr class="hovercolorchange" @click="toggleDemoQuestions()"><td colspan=3>Demographic section <span style="float:right">(default)</span></td></tr>
-                        <demographicsection v-show="showSection" :qtypes="qtypesDemo"></demographicsection>
+                        <demographicsection  :qtypes="qtypesDemo" id="demo"></demographicsection>
 
                     <template v-for="(section, index) in sections">
                         <tr @click="rowClicked(section[0].subsection_id)" class="hovercolorchange" v-bind:class="{selected: rowShow[section[0].subsection_id]}">
-                            <td>{{section[0].name}}</td>
+                            <td><span v-if="section[0].text">{{index+1}}. </span>{{section[0].name}}</td>
                             <td>{{section[0].value}}</td>
                             <td>
                                 <span v-if="section[0].text">
@@ -26,8 +26,8 @@
                                 <span v-else>not used here</span>
                             </td>
                         </tr>
-                        <tr v-if="rowShow[section[0].subsection_id]">
-                            <td colspan="3"><sect :section="section" :options="options" :qtypes="qtypes"></sect></td>
+                        <tr class="not-active" :class="{selectedTwo: rowShow[section[0].subsection_id]}"><!--  v-if="rowShow[section[0].subsection_id]"  -->
+                            <td colspan="3" :class="'row-' + section[0].subsection_id"><sect :section="section" :options="options" :qtypes="qtypes"></sect></td>
                         </tr>
                     </template>
                 </tbody>
@@ -71,7 +71,8 @@
         },
         methods: {
             toggleDemoQuestions(){
-                this.showSection ? this.showSection = false : this.showSection = true;
+                // this.showSection ? this.showSection = false : this.showSection = true;
+                document.querySelector('.tdt').classList.toggle('active');
             },
             showAddQ(){
                 this.showAddQuestion ? this.showAddQuestion = false : this.showAddQuestion = true;
@@ -83,12 +84,11 @@
                 this.sections.forEach(section => {
                     this.rowShow[section.subsection_id] = false;
                 });
-                //fills array rowShow with false values, NOT NEEDED NOW
-                // this.rowShow = Array(this.sections[0].length).fill(false);
             },
             rowClicked(index){
                 // set(array, key, value), sets always opposite value (true -> false, false -> true)
                 this.$set(this.rowShow, index, !this.rowShow[index]);
+                document.querySelector('.row-' + index).classList.toggle('activeRow');
             },
             // change order of sections in survey
             move (section, up) { // up == true => up; up == false => down;
@@ -112,10 +112,8 @@
                     })
                 }
                 
-                // console.log(sections);
                 let swapSection;
                 up ? swapSection = this.maxOrderValueId(sections) : swapSection = this.minOrderValueId(sections);
-                // let swapSection = this.maxOrderValueId(sections);
 
                 //test if its extrem value (cz: zjistit jestli to neni extrem)
                 if (swapSection == null) return false;
@@ -140,7 +138,6 @@
                         section = sections[length];
                     }
                 }
-                // console.log(max, section, length, sections, sections.length);
                 return section;
             },
             minOrderValueId(sections){
@@ -165,8 +162,7 @@
             }
         },
         mounted() {
-            // this.fillShow();
-            this.fillStateRowShow(); 
+            //this.fillStateRowShow(); 
         },
         computed: {
             fullsections(){
@@ -224,8 +220,9 @@
 td, th {
     padding: 15px;
     border: 1px solid black;
+    border-top: 0px solid black;
+    transition: 0.3s;
 }
-
 
 th{
     background-color: rgba(24, 24, 24, 0.815);
@@ -247,6 +244,35 @@ th{
 .btncust2{
     padding-left: 10px !important;
     padding-right: 10px !important;
+}
+
+tr td div{
+    max-height: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    transition: max-height 0.3s, padding 0.3s;
+}
+
+tr td.activeRow div{
+    max-height: 1000px;
+    padding: 3px 10px;
+    transition: max-height 0.6s, padding 0.6s;
+    padding-top: 10px;
+}
+
+td.activeRow {
+    border-bottom: 1px black solid;
+    border-top: 1px black solid;
+}
+
+tr.not-active td {
+    padding: 0px;
+    border-bottom: 0px solid black;
+    transition: border-bottom 0.3s;
+}
+
+tr.selectedTwo td {
+    border-bottom: 1px solid black;
 }
 
 </style>

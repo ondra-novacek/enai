@@ -5,10 +5,18 @@
               <a class="nav-link" href="http://academicintegrity.eu"><strong>ENAI</strong></a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="/edit"><strong>Menu</strong></a>
+              @if (App::environment('local')) 
+                  <a class="nav-link" href="/edit"><strong>Menu</strong></a>
+              @else
+                  <a class="nav-link" href="/survey/edit"><strong>Menu</strong></a>
+              @endif
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="/"><strong>Tests</strong></a>
+              @if (App::environment('local')) 
+                   <a class="nav-link" href="/"><strong>Tests</strong></a>
+              @else
+                   <a class="nav-link" href="/survey"><strong>Tests</strong></a>
+              @endif
             </li>
           </ul>
 
