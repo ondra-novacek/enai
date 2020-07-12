@@ -53,15 +53,15 @@
         </section>
     
         <section id="content4">
-            <button class="btn btn-md btn-indigo" @click="routeToResults()">Show respondents data</button>
+            <!-- <button class="btn btn-md btn-indigo" @click="routeToResults()">Show respondents data</button> -->
             <div class="dropdown buttonsright">
                     <button class="btn btn-primary btn-md dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         Export data
                     </button>
                     <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
-                            <a class="customA" href="https://academicintegrity.eu/survey/edit/export_excel/excel">Excel</a>
+                            <a class="customA" href="/edit/export_excel/excel">Excel</a>
                             <br>
-                            <a class="customA" href="https://academicintegrity.eu/survey/edit/export_excel/csv">CSV</a>
+                            <a class="customA" href="/edit/export_excel/csv">CSV</a>
                     </div>
                 </div>
             <br>

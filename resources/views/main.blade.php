@@ -6,6 +6,7 @@
         
         @include('partials._javascript')
         @include('javascript.browserSupport')
+        @include('javascript.saveForLater')
 
         @if(Request::path() === '/') 
             @include('javascript.randAvatars')

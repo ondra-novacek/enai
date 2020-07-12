@@ -18,6 +18,7 @@
             <input type="hidden" name="who" value="{{$whoName[0]->id}}">
             <input type="hidden" name="totalMaxPts" v-bind:value="totalMaxPts">
             <input type="hidden" name="totalPts" v-bind:value="totalPts">
+            <input type="hidden" name="totalMaxSkipped" v-bind:value="totalMaxSkipped">
             <input type="hidden" name="htmlText" v-bind:value="htmlText">
 
             @if (App::environment('local')) 
@@ -25,6 +26,8 @@
             @else
                 <div style="display: none">@{{baseURL = "/survey"}}</div>
             @endif
+
+            <div class="alertLoad"></div>
 
             {{-- INTRODUCTION PART --}}
             @include('dev.survey_parts.intro')
@@ -34,7 +37,6 @@
             
             {{-- SURVEY QUESTIONS HANDLER --}}
             @include('dev.survey_parts.questions') 
-
         </form>  
     </div>
 
@@ -66,8 +68,11 @@ new Vue({
       err: '',
       totalMaxPts: 0,
       totalPts: 0,
+      totalMaxSkipped: 0,
       baseURL: '/survey',
-      htmlText: ''
+      htmlText: '',
+      showBottomBtns: false,
+      skippedQs: []
     },
     methods: {
         // getData(){
@@ -79,6 +84,33 @@ new Vue({
         //     })
         //     .catch((err)=>{console.log(err)});
         // },
+        toggleSkip(qs, qtype){
+            let filtered;
+            if (this.skippedQs.includes(qs)) {
+                this.skippedQs.splice(this.skippedQs.indexOf(qs), 1);
+            } else {
+                this.skippedQs.push(qs);
+
+                let x = document.getElementsByClassName("shadow");
+                let inputs = x[this.showSection].getElementsByTagName("input");
+                let elements = [].slice.call(inputs);
+                if (qtype === 1) {
+                    filtered = elements.filter(el => el.name == qs);
+                } else if (qtype === 2) {
+                    const regex = new RegExp(qs + ' .');
+                    filtered = elements.filter(el => regex.test(el.name));
+                } else if (qtype === 3){
+                    const regex = new RegExp(qs + ' .');
+                    filtered = elements.filter(el => regex.test(el.name));
+                } else {
+                    filtered = [];
+                }
+                
+                filtered.forEach(input => {
+                    input.checked = false;
+                });
+            }
+        },
         getCountries(){
             axios.get('https://restcountries.eu/rest/v2/all')
             .then(response => {
@@ -92,6 +124,9 @@ new Vue({
         },
         addToPts(pts){
           this.totalPts += pts;
+        },
+        addToSkipedPts(pts){
+          this.totalMaxSkipped += pts;  
         },
         nextPage(direction){
             this.msg = "";
@@ -112,6 +147,7 @@ new Vue({
             // prev page
             } else if(direction === -1){
                 this.showSection += 1;
+                this.fillSkippedQs(); // so there is not bug when loading data and some question were selected for skipping
                 scroll(0,0);
             // next page from demographic section
             } else {
@@ -156,6 +192,7 @@ new Vue({
             let answeredQs = [];
             let qsNotChecked = [];
             let qsChecked = [];
+            let qsSkipped = [];
             let pom;
 
             for (i = 0; i < AllOnePartElements.length; i++)
@@ -198,12 +235,25 @@ new Vue({
                     pom2 = AllOnePartElements[i].name.split(" ");
                     if (AllOnePartElements[i].checked) {
                         //get answered options from checkbox questions
-                        qsChecked.push(pom2[1]); 	
-                        answeredQs.push(pom[1]);
+                        if (pom2[0] !== "skip"){                 
+                            qsChecked.push(pom2[1]); 	
+                            answeredQs.push(pom[1]);
+                        } else {
+                            // only on type 1 or 3 we want to reduce notAnswered count (there is an extra el on name attr.)
+                            if (pom2.length === 2){
+                                notAnswered--;
+                            } else if (pom2.length === 4){
+                                notAnswered -= pom2[3];
+                            }
+                            qsSkipped.push(pom2[1]); 
+                        }
+                        // qsChecked.push(pom2[1]); 	
+                        // answeredQs.push(pom[1]);
                     } else {
                         //option was not selected, but we need to keep it in order to give feedback on unchecked options
-                        qsNotChecked.push(pom2[1]);
-                       
+                        if (pom2[0] !== "skip"){                    //check if is skip checkbox, if it is, ignore it
+                            qsNotChecked.push(pom2[1]);
+                        } 
                     }
                 }
             }
@@ -214,9 +264,12 @@ new Vue({
             //notchecked question type 2 (checkbox)
             var notCheckedQs = qsNotChecked.filter(function(obj) { return qsChecked.indexOf(obj) == -1; });
 
+            //clear qs of type 2, that are skipped
+            notCheckedQs = notCheckedQs.filter( el => !qsSkipped.includes(el));
+
             // console.log(notCheckedQs);
             if (notAnswered === 0){
-                this.getFeedbacks(answeredQs, notCheckedQs);
+                this.getFeedbacks(answeredQs, notCheckedQs, qsSkipped);
             }
             return notAnswered;
         },
@@ -224,21 +277,24 @@ new Vue({
             document.getElementById("surForm").submit();
             
         },
-        getFeedbacks(answers, notChecked){
+        getFeedbacks(answers, notChecked, qsSkipped){
+            this.showBottomBtns = false;
             this.loadingDataMsg = "Loading...";  
-            //console.log(answers);
-            //console.log(notChecked);
+            // console.log(answers);
+            // console.log(notChecked);
+            // console.log(qsSkipped);
             try{
                 var that = this;
-              axios.post(this.baseURL + '/api/evaluateOneSection', {selectedOptions: answers, forgottenQs: notChecked, who: {{$whoName[0]->id}} })
+              axios.post(this.baseURL + '/api/evaluateOneSection', {qsSkipped: qsSkipped, selectedOptions: answers, forgottenQs: notChecked, who: {{$whoName[0]->id}} })
                 .then(response => {
-                  //console.table(response.data);
+                  console.table(response.data);
                   this.feedbacks = response.data;
-                  //console.log(this.feedbacks);
+                  console.log(this.feedbacks);
                   // this.feedbacks = [];
                   //add to total pts
                   this.addToTotalPts(this.feedbacks[this.feedbacks.length-1][2]);
                   this.addToPts(this.feedbacks[this.feedbacks.length-1][1]);
+                  this.addToSkipedPts(this.feedbacks[this.feedbacks.length-1][3]);
                   //console.log('totalMaxPts so far:' + this.totalMaxPts);
                   if (this.feedbacks.length < 1) {this.loadingDataMsg = "No evaluation for those questions. Please continue to the next section."}
                   var vm = that;
@@ -252,6 +308,7 @@ new Vue({
               .catch(err => {
                   //console.log(err);
                   this.loadingDataMsg = "Something went wrong and we could not fetch the feedbacks for this section. Please continue to the next section.";
+                  this.showBottomBtns = true;
                   document.getElementsByClassName('loader')[0].style.display = 'none';
               });
             } catch (er){
@@ -268,10 +325,27 @@ new Vue({
             this.feedbacks = '';
             this.showQuestions = true;
             this.showSection += 1;
+        },
+        fillSkippedQs(){
+            let skipped = document.getElementsByClassName('skipInputs');
+            for (qs of skipped) {
+                if (qs.checked) {
+                    this.skippedQs.push(qs.getAttribute('data-cust'))
+                    inputs = document.getElementsByClassName(qs.id);
+                    for (i of inputs) {
+                        if (i.tagName == 'LABEL'){
+                            i.classList.add('skipped');
+                        } else {
+                            i.disabled = true;
+                        }
+                    }
+                }
+            }
         }
     },
     mounted(){
         this.getCountries();
+        //this.fillSkippedQs();
     }
   })
 
@@ -295,6 +369,10 @@ new Vue({
 
   .darkblue{
       background-color: rgb(0, 153, 153) !important;
+  }
+  
+  .skipped{
+    color: #dddddd;
   }
 </style>
 

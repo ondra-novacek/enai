@@ -33,12 +33,16 @@
                         @endfor
                     </div>
                         <br>
-                        <br>
                         <p><strong>Acknowledgement</strong></p>
                         <p>We are most grateful for your contribution to this tool. 
                         <br>
                         If you wish to provide feedback or contact the organizers of this tool, please send an email to <a href="mailto:surveys@academicintegrity.eu">surveys@academicintegrity.eu</a>.
                         </p>
+                        <br>
+                        <button class="btn btn-outline-info greenColor" type="button" onclick="printResults()">
+                            Print results
+                        </button>
+                        <br><br>
                     @else
                         {{-- <script type="text/javascript">
                             window.location = "{{ url('/') }}";
@@ -46,11 +50,6 @@
                         <p>Please visit our page to learn more about Academic Integrity.</p>
                     @endisset 
                         <a href="/" class="link">ENAI page</a><br><br>
-
-                        <button class="btn btn-outline-info greenColor" type="button" onclick="printResults()">
-                            Print results
-                        </button>
-                        <br>
                     </div> 
 
                     <div id="testpart" style="display: none">

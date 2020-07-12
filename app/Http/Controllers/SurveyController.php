@@ -79,14 +79,14 @@ class SurveyController extends Controller
         #########
 
         #renders final responses to the user given the score
-        $finaltext = $this->getSurveyResponse($totalResult, $inputs['who']);
+        $finaltext = $this->getSurveyResponse($totalResult, $inputs['who'], $inputs['totalMaxPts'], $inputs['totalMaxSkipped']);
 
         #renders section responses to the user given the score
         $texts = [];
-        foreach ($scores as $idsection => $score) {
-            $text = $this->getSectionResponse($score, $idsection, $inputs['who']);
-            $texts[] = $text;
-        }
+        // foreach ($scores as $idsection => $score) {
+        //     $text = $this->getSectionResponse($score, $idsection, $inputs['who']);
+        //     $texts[] = $text;
+        // }
 
         #option feedbacks
         $feedbacks = $this->getOptionFeedbacks($inputs);
@@ -99,7 +99,7 @@ class SurveyController extends Controller
 
         if (strpos($ptsRecieved, '.') !== false) {
             $ptsRecieved = strval(round(floatval($ptsRecieved),1));
-        } 
+        }
 
         return redirect()->route('show')->with(['texts' => $texts, 'finaltext' => $finaltext, 'ptsRecieved' => $ptsRecieved,
                                                      'totalresult' => $totalResult, 'max' => $max, 'htmlText' => $htmlText, 'who' => $who]);
@@ -141,7 +141,7 @@ class SurveyController extends Controller
             $results = array_intersect_key($inputs, array_flip($allowed)); #function a_i_k_() compares the keys of two (or more) arrays, and returns the matches
             #now in $results we have filtered inputs, only those connected to current id_section
 
-            
+
             $pom = 0;
             foreach ($results as $key => $result) { //dd($results);
                 $count += 1;
@@ -355,10 +355,12 @@ class SurveyController extends Controller
         $keys = array_keys($inputs); #keys from array, e.g. "age", "16_11",..
         $allowed = preg_grep('/^\d.*/i', $keys); #only those starting with digit in key
         $results = array_intersect_key($inputs, array_flip($allowed)); #filter $inputs to only inputs with question data
+        $questionIds = [];
 
         foreach ($results as $key => $result) {
             $keySplitValues = explode("_", $key);
             $question_id = $keySplitValues[1];
+            $questionIds[] = $question_id;
 
             $resultSplit = explode("_", $result);
             $points = $resultSplit[0];
@@ -376,6 +378,71 @@ class SurveyController extends Controller
             $result->person_id = $person_id;
             $result->one_to_five_selected = $onetofiveSelected;
             $result->points = $points;
+            $result->selected = true;
+
+            $result->save();
+        }
+
+        $this->saveForgottenQuestions($questionIds, $person_id, $inputs['who']);
+
+        //vzit vsechny zaznamy s $person_id
+            //idealne ve tvaru 'questionId' => ['optionId1', 'optionId2'],...
+        $results = Result_Question::where('person_id', $person_id)->get()->toArray();
+        $answered = [];
+        $qids = [];
+
+        foreach ($results as $key => $result) {
+            $answered[$result['question_id']][] = $result['option_id'];
+            $qids[] = $result['question_id'];
+        }
+        $questionIds = array_unique($qids);
+        //pro kazdy questionId ziskat vsechny optionId a porovnat s [optId1,..]
+        foreach ($questionIds as $key => $qid) {
+            $question = Question::join('survey_options', 'survey_questions.id', '=', 'survey_options.question_id')
+                ->where('survey_questions.id', $qid)
+                ->select('survey_options.id')
+                ->get()
+                ->toArray();
+            $notAnswered = [];
+            foreach ($question as $option) {
+                $notAnswered[] = $option['id'];
+            }
+            $diff = array_diff($notAnswered, $answered[$qid]);
+
+            foreach ($diff as $notSelected) {
+                $result = new Result_Question;
+
+                $result->question_id = $qid;
+                $result->option_id = $notSelected;
+                $result->person_id = $person_id;
+                $result->selected = false;
+
+                $result->save();
+            }
+        }
+    }
+
+    public function saveForgottenQuestions($qids, $person_id, $who){
+        $typeTwo = Question::join('survey_qfor_question', 'survey_qfor_question.question_id', '=', 'survey_questions.id')
+                    ->where([['survey_questions.qtype_id', '=', 2],['survey_qfor_question.qfor_id', '=', $who]])
+                    ->select('survey_questions.id')
+                    ->get()
+                    ->toArray();
+                    
+        $typeTwoQs = [];
+        foreach ($typeTwo as $qid) {
+            $typeTwoQs[] = $qid['id'];
+        }
+
+        $qids = array_unique($qids);
+        $qids = array_map('intval', $qids);
+        $diff = array_diff($typeTwoQs, $qids);
+
+        foreach ($diff as $key => $qid) {
+            $result = new Result_Question;
+
+            $result->question_id = $qid;
+            $result->person_id = $person_id;
 
             $result->save();
         }
@@ -412,9 +479,16 @@ class SurveyController extends Controller
         }
     }
 
-    public function getSurveyResponse($score, $who){
+    public function getSurveyResponse($score, $who, $scoreMax, $skippedQsMax){
+        if ($skippedQsMax > 0) {
+            $max = $scoreMax + $skippedQsMax;
+            $rate = $score / $scoreMax;
+            $correctScore = $rate * $max;
+        } else {
+            $correctScore = $score;
+        }
         //find in db accurate testresponse
-        $response = Test_Score::where('min_pts', '<', $score)
+        $response = Test_Score::where('min_pts', '<', $correctScore)
                         ->where('qfor_id', $who)
                         ->orderBy('min_pts', 'desc')
                         ->take(1)
@@ -461,14 +535,26 @@ class SurveyController extends Controller
         return 0;
     }
 
-    public function getSectionResponse($score, $idsection, $who){
+    public function getSectionResponse($score, $idsection, $who, $totalMaxPts, $qsSkippedMax){
+        if ($qsSkippedMax > 0) {
+            $max = $totalMaxPts + $qsSkippedMax;
+            if ($totalMaxPts == 0){
+                $rate = 0;
+            } else {
+                $rate = $score / $totalMaxPts;
+            }
+            $correctScore = $max * $rate;
+        } else {
+            $correctScore = $score;
+        }
+       
         if($score === 0){
             return [];
         }else{
             $response = DB::table('survey_section_scores')
                         ->join('survey_subsections', 'survey_subsections.id', '=', 'survey_section_scores.subsection_id')
                         ->where('subsection_id', $idsection)
-                        ->where('min_pts', '<', $score)
+                        ->where('min_pts', '<', $correctScore)
                         ->where('qfor_id', $who)
                         ->orderBy('min_pts', 'desc')
                         ->take(1)

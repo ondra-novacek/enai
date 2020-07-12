@@ -46,21 +46,22 @@
         </div>
 
         <br>
-        
-        <button class="btn btn-sm btn-outline-dark" name="oneFeedback" @click="oneFeedbackShow ? oneFeedbackShow = false : oneFeedbackShow = true" v-text="oneFeedbackShow ? 'One feedback for Q on' : 'One feedback for Q off'"></button>
-        <form @submit.prevent="addOneFeedback()">
-            <div v-if="oneFeedbackShow">
-                <!-- {{question}} -->
-                <!-- <input type="checkbox" name="oneFeedbackON" v-model=""> Use this type of feedback here -->
-                Use this: <input type="checkbox" v-model="question.hasFeedback"> <br>
-                Feedback original: <input type="text" v-model="question.feedbackOriginal" ><br>
-                Feedback alternative: <input type="text" v-model="question.feedbackAlt"><br>
-                Points req for alternative: <input type="number" step="0.1" name="ptsAlternative" v-model="question.feedbackSplitValue"><br>
-                <!-- <input type="checkbox" name="equal" v-model="eqSignOriginal"> Equal value also for alternative ON -->
-                <button type="submit" class="btn btn-sm">Save</button> <br>
-                <span v-if="msgFB">{{msgFB}}</span>
-            </div>
-        </form>
+        <div v-if="question.qtype_id == 2">
+            <button class="btn btn-sm btn-outline-dark" name="oneFeedback" @click="oneFeedbackShow ? oneFeedbackShow = false : oneFeedbackShow = true" v-text="oneFeedbackShow ? 'One feedback for Q on' : 'One feedback for Q off'"></button>
+            <form @submit.prevent="addOneFeedback()">
+                <div v-if="oneFeedbackShow">
+                    <!-- {{question}} -->
+                    <!-- <input type="checkbox" name="oneFeedbackON" v-model=""> Use this type of feedback here -->
+                    Use this: <input type="checkbox" v-model="question.hasFeedback"> <br>
+                    Feedback original: <input type="text" v-model="question.feedbackOriginal" ><br>
+                    Feedback alternative: <input type="text" v-model="question.feedbackAlt"><br>
+                    Points req for alternative: <input type="number" step="0.1" name="ptsAlternative" v-model="question.feedbackSplitValue"><br>
+                    <!-- <input type="checkbox" name="equal" v-model="eqSignOriginal"> Equal value also for alternative ON -->
+                    <button type="submit" class="btn btn-sm">Save</button> <br>
+                    <span v-if="msgFB">{{msgFB}}</span>
+                </div>
+            </form>
+        </div>
 
         <hr>
 
@@ -75,9 +76,10 @@
                         <li class="list-group-item"  v-for="option in opts" :key="option.id">
                             <!-- edit option name form -->
                             <span v-if="showEditOption == option.id">
-                                <form action="" @submit.prevent="editRowText(option.id)">
-                                    Rename column: <input v-model="newrowname" type="text">
-                                    <button class="btn btn-sm btn-outline-dark">Save</button>
+                                <form action="" @submit.prevent="editRowText(option.id, option.name)">
+                                    <textarea cols="70" rows="5" v-model="option.name">{{option.name}}</textarea>
+                                    <br>
+                                    <button class="btn btn-sm btn-outline-dark" style="margin-left: 0px">Save</button>
                                 </form>
                             </span>
 
@@ -88,12 +90,12 @@
                                 <br>
                                 <!-- {{option.suboption}} -->
                                 <!-- <p v-for="index in Number(question.rateTo)" :key="index"> -->
-                                <p v-for="(suboption, index) in option.suboption" :key="index">
+                                <div v-for="(suboption, index) in option.suboption" :key="index">
                                     Col {{index+1}}: 
                                     Feedback <input type="text" @blur="editSuboptionFeedback($event.target.value, suboption.id)" :value="suboption.feedback"> 
                                     Pts <input type="number" @blur="editSuboptionValue($event.target.value, suboption.id)" :value="suboption.value">
-                                </p>
-                                <button v-if="option.suboption.length < question.rateTo" @click="addSuboption(option.id, option.suboption.length)" class="btn btn-sm btn-outline-dark plusbutton"><i class="fas fa-plus"></i></button>
+                                </div>
+                                <!-- <button v-if="option.suboption.length < question.rateTo" @click="addSuboption(option.id, option.suboption.length)" class="btn btn-sm btn-outline-dark plusbutton"><i class="fas fa-plus"></i></button> -->
                                 <!-- <p>Col 1: Feedback <input type="text"> Pts <input type="text"></p> -->
                                 <!-- <p>Col 1: Feedback <input type="text"> Pts <input type="text"></p> -->
                             </div>
@@ -105,7 +107,7 @@
 
         <!-- ADD NEW ROW -->
             <strong>Add new row:</strong><br>
-            <form class="form-row" @submit.prevent="addOption()">
+            <form class="form-row" @submit.prevent="addOption(3)">
                     <div class="col-8">  
                         <input type="text" class="form-control" @click="clear()" placeholder="write row text here" v-model="newoption">
                     </div>
@@ -133,7 +135,7 @@
         <!-- ADD OPTION SECTION -->
         <div >
             <strong>Add new option:</strong><br>
-            <form class="form-row" @submit.prevent="addOption()">
+            <form class="form-row" @submit.prevent="addOption(1)">
                     <div class="col-6" v-if="question.qtype_id == 2">
                         <input type="text" class="form-control" @click="clear()" placeholder="write option text here" v-model="newoption">
                     </div>    
@@ -162,7 +164,7 @@
         </div>
 
         <!-- add question cap -->
-        <div>
+        <div v-if="question.qtype_id == 2">
             <input type="text" class="form-control col-5" placeholder="add max cap points" style="display: inline-block" v-model="question.capPts">
             <button class="btn btn-sm btn-outline-dark" @click="updateCapPts()">Update cap points</button>
         </div>
@@ -208,23 +210,19 @@
             'oneoption': Oneoption
         },
         methods: {
-            editRowText(id){
+            editRowText(id, name){
                 this.showEditOption = '';
-                if (this.newrowname != '') {
-                    axios.post('/api/editrowtext', {
-                        name: this.newrowname,
-                        option_id: id
-                    })
-                    .then(response => {
-                        this.newrowname = '';
-                        this.refresh();
-                    })
-                    .catch(e => {
-                        console.log(e);
-                    });
-                }
-                
-                
+                axios.post('/api/editrowtext', {
+                    name: name,
+                    option_id: id
+                })
+                .then(response => {
+                    this.newrowname = '';
+                    this.refresh();
+                })
+                .catch(e => {
+                    console.log(e);
+                });          
             },
             editableOption(id){
                 if (id == this.showEditOption) {
@@ -328,13 +326,23 @@
                 this.showSubOption = id;
             },
             deleteoptionrow(id){
-                axios.post('/api/deleteoptionrow', {
-                    id: id
-                }).then(response => {
-                    this.refresh()
-                })
-                .catch(error => console.log(error))
+                let result = confirm('Do you really want to delete this subquestion?');      
+                if (result) {
+                    axios.post('/api/deleteoptionrow', {
+                        id: id
+                    }).then(response => {
+                        this.refresh()
+                    })
+                    .catch(error => console.log(error))
+                }           
             },
+            // addOptionRow(){
+            //     axios.post('/api/addoptionrow', {
+            //         question_id: this.question_id,
+            //         name: this.newoption,
+            //         points: this.newpoints
+            //     })
+            // },
             addSuboption(optionid, num){
                 axios.post('/api/addsuboption', {
                     option_id: optionid,
@@ -344,13 +352,15 @@
                 })
                 .catch(error => console.log(error))
             },
-            addOption(){
+            addOption(qtype){
                 if(this.newoption && this.newpoints <= 5 && this.newpoints >= -5){
                     axios.post('/api/addoption', {
                         question_id: this.question_id,
                         name: this.newoption,
                         points: this.newpoints,
-                        pointsNC: this.newpointsNC
+                        pointsNC: this.newpointsNC,
+                        qtype: qtype,
+                        cols: this.question.rateTo
                     })
                     .then(response => {
                         this.newoption = '';

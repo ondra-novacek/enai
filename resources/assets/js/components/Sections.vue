@@ -12,8 +12,8 @@
                         <!-- DEMO SECTION -->
                         <tr class="hovercolorchange" @click="toggleDemoQuestions()"><td colspan=3>Demographic section <span style="float:right">(default)</span></td></tr>
                         <demographicsection  :qtypes="qtypesDemo" id="demo"></demographicsection>
-
-                    <template v-for="(section, index) in sections">
+                        <!-- {{sections}} -->
+                    <template v-for="(section, index) in surveySections">
                         <tr @click="rowClicked(section[0].subsection_id)" class="hovercolorchange" v-bind:class="{selected: rowShow[section[0].subsection_id]}">
                             <td><span v-if="section[0].text">{{index+1}}. </span>{{section[0].name}}</td>
                             <td>{{section[0].value}}</td>
@@ -165,11 +165,11 @@
             //this.fillStateRowShow(); 
         },
         computed: {
-            fullsections(){
-                return this.sections.filter(section => !empty(section));
-            },
             usedSections(){
                 return this.sections.filter(section => section[0].text);
+            },
+            surveySections(){
+                return this.sections.filter(section => section[0].text || section[0].new === 1);
             }
         }
     }

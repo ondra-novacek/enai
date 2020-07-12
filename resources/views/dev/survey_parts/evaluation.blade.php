@@ -36,6 +36,7 @@
                                             Points received: <strong>@{{feedback[0].ptsFinal}} / @{{feedback[0].max}}</strong>
                                             <br><br>
                                             <div v-if="feedback[0].hasFeedback">
+                                                {{-- @{{feedback}} --}}
                                                 <div v-if="feedback[0].splitPts > feedback[0].ptsFinal">
                                                         <div class="greenish">@{{feedback[0].originalFB}}</div>
                                                         {{-- <br> --}}
@@ -47,6 +48,27 @@
                                                     {{-- <br> --}}
                                                     {{-- Final: @{{feedback[0].ptsFinal}} <br>
                                                     Split: @{{feedback[0].splitPts}} <br> --}}
+                                                </div>
+                                                <div v-for="option in feedback">
+                                                    {{-- @{{option}} --}}
+                                                    <br>
+                                                    <small>Line: @{{option.option}}
+                                                    <span v-if="option.qtype == 2">
+                                                        <br>Your choice: 
+                                                        <span v-if="option.selected"> Selected</span><span v-else> Not selected</span>
+                                                        <br>Points: 
+                                                        <span v-if="option.value > option.value_not_checked">  {{-- if qvalue is ever greater than 1, then change it here --}}
+                                                            <span v-if="option.selected">@{{option.value}} / @{{option.value}}</span>
+                                                            <span v-else> 
+                                                                <span v-if="option.value_not_checked !== null">@{{option.value_not_checked}}</span><span v-else>0</span> / @{{option.value}}
+                                                            </span>
+                                                        </span>
+                                                        <span v-else>
+                                                            <span v-if="option.selected">@{{option.value}} / @{{option.value_not_checked}}</span>
+                                                            <span v-else> @{{option.value_not_checked}} / @{{option.value_not_checked}}</span>
+                                                        </span>
+                                                    </span> 
+                                                    </small>
                                                 </div>
                                             </div>
                                             <div v-else>
@@ -64,7 +86,7 @@
         
                                                         {{-- other question types --}}
                                                         <div v-else>
-                                                            <div v-if="question.feedback"> 
+                                                            <div> 
                                                                 <small>Line: @{{question.option}}
                                                                     <span v-if="question.qtype == 2">
                                                                         <br>Your choice: 
@@ -83,7 +105,8 @@
                                                                     </span> 
                                                                 </small>
                                                                 <br> 
-                                                                <div class="greenish">@{{question.feedback}}</div> 
+                                                                <div v-if="question.feedback" class="greenish" v-html="question.feedback"></div> 
+                                                                {{-- <div v-else>No feedback for this question.</div> --}}
                                                                 <br v-if="question.qtype == 2">                                                              
                                                             </div>
                                                         </div>
@@ -107,8 +130,10 @@
                                 <p>@{{loadingDataMsg}}</p>
                                 <div class="loader"></div>
                                 <br>
-                                <button type="button" class="btn btn-secondary" @click="continueWithForm()" v-if="showSection < {{count($sections)-1}}">Continue to next section</button>
-                                <button type="submit" class="btn btn-success darkblue" @click="submitForm()" v-else>Finish test</button>
+                                <span v-if="showBottomBtns">
+                                    <button type="button" class="btn btn-secondary" @click="continueWithForm()" v-if="showSection < {{count($sections)-1}}">Continue to next section</button>
+                                    <button type="submit" class="btn btn-success darkblue" @click="submitForm()" v-else>Finish test</button>
+                                </span>
                             </div>
 
                         </div>

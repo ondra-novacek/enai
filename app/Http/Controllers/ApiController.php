@@ -108,6 +108,20 @@ class ApiController extends Controller
         }
 
         $newOption->save();
+
+        if($request->qtype == 3){
+            for ($i=1; $i <= $request->cols; $i++) { 
+                $newSuboption = new Suboption;
+
+                $newSuboption->option_id = $newOption->id;
+                $newSuboption->columnNum = $i;
+                $newSuboption->name = 'test';
+                $newSuboption->feedback = '';
+                $newSuboption->value = 0;
+
+                $newSuboption->save();
+            }
+        }
     }
 
     #edit option
@@ -161,6 +175,15 @@ class ApiController extends Controller
         $newQuestion->qtype_id = $request->qtype_id;
         $newQuestion->subsection_id = $request->section;
         $newQuestion->rateTo = $request->rateTo;
+
+        //find max order in that section
+        $max = Question::where('subsection_id', $request->section)->max('orderQ');
+        if (!empty($max)){
+            $max += 1;
+        } else {
+            $max = 1;
+        }
+        $newQuestion->orderQ = $max;
 
         $newQuestion->save();
 
@@ -421,6 +444,64 @@ class ApiController extends Controller
         $second->save();
     }
 
+    #swaps order of 2 sections
+    public function swapQuestionOrder(Request $request){
+        $firstId = $request->first['question_id'];
+        $firstOrder = $request->first['orderQ'];
+        $secondId = $request->second['question_id'];
+        $secondOrder = $request->second['orderQ'];
+
+        $first = Question::find($firstId);
+        $first->orderQ = $secondOrder;
+        $second = Question::find($secondId);
+        $second->orderQ = $firstOrder;
+
+        $first->save();
+        $second->save();
+    }
+
+    private function skippedQsMax($qs){
+        $sum = 0;
+        foreach ($qs as $key => $qid) {
+            $qs = Question::join('survey_options', 'survey_options.question_id', '=', 'survey_questions.id')->where('survey_questions.id', $qid)->get();
+
+            if (empty($qs)) {continue;}
+            $maxPts = 0;
+            //if type 1
+            if ($qs[0]->qtype_id == 1) {
+                foreach ($qs as $key => $option) {
+                    if ($option->value > $maxPts) {
+                        $maxPts = $option->value;
+                    }
+                }
+                $sum += $maxPts*$qs[0]->weight;
+            }
+            //if type 2
+            if ($qs[0]->qtype_id == 2) {
+                foreach ($qs as $key => $option) {
+                    $value = ($option->value > $option->value_not_checked) ? $option->value : $option->value_not_checked;
+                    $sum += $value*$qs[0]->weight;
+                }
+            }
+            //if type 3
+            if ($qs[0]->qtype_id == 3) {
+                $total = 0;
+                foreach ($qs as $key => $option) {
+                    $options = Option::join('survey_suboptions', 'survey_options.id', '=', 'survey_suboptions.option_id')->where('survey_options.id', $option->id)->get()->toArray();
+                    $max = 0;
+                    foreach ($options as $k => $suboption) {
+                        $max = $max > $suboption['value'] ? $max : $suboption['value'];
+                    }
+                    $total += $max;
+                    //return $total;
+                }
+                //missing qvalue, not important now
+                $sum += $total;
+            }
+        }
+        return $sum;
+    }
+
     #evaluate one section, send back feedbacks
     public function evaluateOneSection(Request $request){
         $eval = [];
@@ -429,7 +510,11 @@ class ApiController extends Controller
         $opts = [];
         $data = $request->selectedOptions;
         $forgotten = $request->forgottenQs;
+        $skipped = $request->qsSkipped;
         $prevIdq = 0;
+
+        //zjistit pro kazdou otazku (a typ) jakej je jejich max pts (celkovy soucet)
+        $skippedQsMax = $this->skippedQsMax($skipped);
         
         foreach ($data as $value) {
             // get id option as first value and possibly option value as second value (if qtype was 'rate 1-5' type of question)
@@ -449,16 +534,16 @@ class ApiController extends Controller
                     , "survey_questions.note AS note", "survey_subsections.name AS subsection", "survey_questions.qtype_id AS qtype"
                     , "survey_questions.id AS qid", "survey_options.id AS oid", "survey_questions.text AS question", "survey_questions.weight AS qweight"
                     , "survey_options.value AS ovalue", "survey_suboptions.value AS sovalue", "survey_subsections.id AS sid"
-                    , "survey_options.name AS option", "survey_questions.capPts as cap")
+                    , "survey_options.name AS option", "survey_questions.capPts as cap", "survey_questions.created_at AS created_at")
                 ->get();
                 
-                #no feedback
-                #return $result;
+                // no feedback, go to next iteration
                 if (sizeof($result) < 1) {continue;}
+                // points = question weight * option value * suboption value
                 $result[0]->pts = $result[0]->qweight * $result[0]->ovalue * $result[0]->sovalue;
-                // plus we need to keep track of selected rating
 
-                 #maxPts per line
+                 // max points per row
+                 // for displaying purposes, so the user can see s/he received X pts out of maxPts
                  $maxPtsPerLine = 0;
                  $subQuestions = Suboption::where("option_id", $parts[0])->get();
                  foreach ($subQuestions as $subquestion) {
@@ -468,7 +553,8 @@ class ApiController extends Controller
                  }
                  $result[0]->maxPtsPerLine = $maxPtsPerLine * $result[0]->qweight;
 
-                
+                // convert number of col into real column name
+                // if that fails, get at least the number
                 $value = DB::table("survey_question_columns")
                   ->where("question_id", $result[0]->qid)
                   ->where("columnNum", $parts[1])
@@ -478,7 +564,9 @@ class ApiController extends Controller
                 } else {
                   $result[0]->value = $value[0]->name;
                 }
+
             } else {
+                //question type 1 or 2
                 $result = DB::table("survey_options")
                 ->join("survey_questions", "survey_options.question_id", "survey_questions.id")
                 ->join("survey_subsections", "survey_subsections.id", "survey_questions.subsection_id") 
@@ -487,10 +575,14 @@ class ApiController extends Controller
                 ,"survey_questions.hasFeedback AS hasFeedback", "survey_questions.feedbackSplitValue AS splitPts", "survey_questions.feedbackOriginal AS originalFB", "survey_questions.feedbackAlt AS altFB", "survey_questions.equalSignOriginal AS equalSign"
                 ,"survey_questions.weight AS weight", "survey_options.value AS value", "survey_questions.qtype_id AS qtype" ,"survey_subsections.name AS subsection"
                 , "survey_questions.id AS qid", "survey_options.id AS oid", "survey_questions.text AS question", "survey_options.feedback AS feedback", "survey_subsections.id AS sid"
-                , "survey_options.name AS option", "survey_questions.capPts as cap", "survey_options.value_not_checked AS value_not_checked")
+                , "survey_options.name AS option", "survey_questions.capPts as cap", "survey_options.value_not_checked AS value_not_checked", "survey_questions.created_at AS created_at")
                 ->get();
 
                 $result[0]->pts = $result[0]->weight*$result[0]->value;   
+
+                // if (in_array($result[0]->qid, $skip)){
+                //     continue;
+                // }
             }
 
             // test whether it's question type 2 (any from many) - in that case, return all feedbacks to that question
@@ -509,20 +601,20 @@ class ApiController extends Controller
                 ->join("survey_questions", "survey_options.question_id", "survey_questions.id")
                 ->join("survey_subsections", "survey_subsections.id", "survey_questions.subsection_id") 
                 ->whereIn("survey_options.id", $optsResults)
-                ->where(function($q) {
-                    $q->where("survey_options.feedback_not_checked", "<>", "")
-                      ->orWhere("survey_questions.hasFeedback", 1);
-                })
+            # this is commented temp, we want to display all questions, even those without feedback
+                // ->where(function($q) {
+                //     $q->where("survey_options.feedback_not_checked", "<>", "")
+                //       ->orWhere("survey_questions.hasFeedback", 1);
+                // })
                 ->select(DB::raw('0 as selected'), "survey_questions.note AS note"
                 ,"survey_questions.hasFeedback AS hasFeedback", "survey_questions.feedbackSplitValue AS splitPts"
                 , "survey_questions.feedbackOriginal AS originalFB", "survey_questions.feedbackAlt AS altFB"
                 , "survey_questions.equalSignOriginal AS equalSign", "survey_questions.qtype_id AS qtype", "survey_subsections.name AS subsection"
                 , "survey_questions.id AS qid", "survey_options.id AS oid", "survey_questions.text AS question"
                 , "survey_options.feedback_not_checked AS feedback", "survey_options.value_not_checked AS value_not_checked", "survey_questions.capPts as cap", "survey_options.value AS value"
-                , "survey_subsections.id AS sid", "survey_options.name AS option")
+                , "survey_subsections.id AS sid", "survey_options.name AS option", "survey_questions.created_at AS created_at")
                 ->get();
                 
-                //now for nothing, change or del
                $optsNotSelected = Option::whereIn("id", $optsResults)->get();
                if (count($optsNotSelected) > 0) {
                     $questionHelper = Question::find($optsNotSelected[0]->question_id);
@@ -535,8 +627,10 @@ class ApiController extends Controller
                 
             }
             
-            if ( ($result[0]->feedback == "" && sizeof($opts) < 1) 
-                    && (!$result[0]->hasFeedback) && ($result[0]->pts == 0)) {continue;}
+            //speed up the unnecessary iterations
+        # this is commented temp, we want to display all questions, even those without feedback
+            // if ( ($result[0]->feedback == "" && sizeof($opts) < 1) 
+            //         && (!$result[0]->hasFeedback) && ($result[0]->pts == 0)) {continue;}
             
             // group together options with same question id into one array
             if ($prevIdq !== $result[0]->qid) {
@@ -585,7 +679,7 @@ class ApiController extends Controller
                     ,"survey_questions.hasFeedback AS hasFeedback", "survey_questions.feedbackSplitValue AS splitPts", "survey_questions.feedbackOriginal AS originalFB", "survey_questions.feedbackAlt AS altFB", "survey_questions.equalSignOriginal AS equalSign"
                     , "survey_questions.qtype_id AS qtype", "survey_subsections.name AS subsection", "survey_questions.id AS qid", "survey_options.id AS oid", "survey_subsections.id AS sid"
                     , "survey_questions.text AS question", "survey_options.feedback_not_checked AS feedback"
-                    , "survey_options.name AS option", "survey_questions.capPts as cap")
+                    , "survey_options.name AS option", "survey_questions.capPts as cap", "survey_questions.created_at AS created_at")
                 ->get();
             //return [$forgotten,$opts];
             //sum of pts for question without feedback
@@ -594,10 +688,11 @@ class ApiController extends Controller
                 foreach ($opts as $option) {
                     $option->pts = $option->value_not_checked * $option->qweight;
                     //if it doesnt have fb, we need only pts and not add it to qs
-                    if (!$option->hasFeedback && empty($option->feedback)){
-                        $sumWOfb += $option->pts;
-                        continue;
-                    }
+                # this is commented temp, we want to display all questions, even those without feedback
+                    // if (!$option->hasFeedback && empty($option->feedback)){
+                    //     $sumWOfb += $option->pts;
+                    //     continue;
+                    // }
                     $question[] = $option;
                 }  
                 if (!isset($question[0])) {
@@ -654,15 +749,25 @@ class ApiController extends Controller
             $totalPts += $question[0]->ptsFinal;
             $totalMaxPts += $question[0]->max;
         }
+
+        // sort questions in required order (by created_at due to missing order values in many qs)
+        for ($i=0; $i < count($eval); $i++) { 
+            $pom = strtotime($eval[$i][0]->created_at);
+            $eval[$i]['sort'] = $pom; 
+        }
+        $eval = collect($eval)->sortBy('sort')->values()->all();
+        for ($i=0; $i < count($eval); $i++) { 
+            unset($eval[$i]['sort']); 
+        }
         
         //return stuff for whole section 
         if (isset($eval[0][0]) && !empty($eval[0][0])) {
-            $sectionFeedback = $sc->getSectionResponse($totalPts, $eval[0][0]->sid, $request->who);    
+            $sectionFeedback = $sc->getSectionResponse($totalPts, $eval[0][0]->sid, $request->who, $totalMaxPts, $skippedQsMax );    
         } else {
             $sectionFeedback = 'No evaluation. Please continue.';
         }
-        $eval[] = [$sectionFeedback, $totalPts, $totalMaxPts];
-            
+        $eval[] = [$sectionFeedback, $totalPts, $totalMaxPts, $skippedQsMax];
+
         // return data to user
         return $eval;
     }
@@ -728,16 +833,20 @@ class ApiController extends Controller
                 ->join('survey_subsections', 'survey_questions.subsection_id', '=', 'survey_subsections.id') 
                 ->where('survey_questions.subsection_id', $sub)
                 ->where('survey_qfor_question.qfor_id', '=', $who)
+                ->orderBy('survey_questions.orderQ')
                 ->orderBy('survey_questions.created_at')
                 ->get();    
             if (count($pom) !== 0) { 
                 #sections with found questions in the survey
                 $sections[] = $pom;
             }else{
+                #check if it is new
+                $pom = Subsection::join('survey_questions', 'survey_questions.subsection_id', '=', 'survey_subsections.id')->where('survey_subsections.id', $sub)->get()->toArray();
+                empty($pom[0]) ? $isEmpty = '1' : $isEmpty = '0';
                 #sections that have no question in the survey
                 $notfound[] = DB::table("survey_subsections AS s") 
-                    ->select("s.id AS subsection_id", 's.name', 's.value', 's.created_at', 's.updated_at')
                     ->where('id', $sub) 
+                    ->select("s.id AS subsection_id", 's.name', 's.value', 's.created_at', 's.updated_at', DB::raw($isEmpty . ' as new'))
                     ->get();    
             }   
         }
@@ -768,6 +877,20 @@ class ApiController extends Controller
         $question = Question::where('id',$request->idq)->first();
         $question->capPts = $request->cappts;
         $question->save();
+    }
+
+    #declare questions order in section
+    public function declareQuestionsOrder(Request $request){
+        $order = 0;
+        $questions = Question::where('subsection_id', $request->id)->orderBy('created_at')->get();
+        foreach ($questions as $index => $question) {
+            $question->orderQ = $index + 1;
+            $question->save();
+            if ($question->id == $request->questionid) {
+                $order = $question->orderQ;
+            }
+        }
+        return $order;
     }
 
     public function getRespondentsByCountry(){

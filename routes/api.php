@@ -142,6 +142,12 @@ Route::get('/getpeople', 'ApiResultsController@getAllPeople');
 ## SWAP SECTION ORDER
 Route::post('/swapSectionOrder', 'ApiController@swapSectionOrder');
 
+## SWAP QUESTION ORDER
+Route::post('/swapQuestionOrder', 'ApiController@swapQuestionOrder');
+
+## DECLARE QUESTIONS ORDER IN SECTION
+Route::post('/declareQuestionsOrder', 'ApiController@declareQuestionsOrder');
+
 ## GET USER'S ANSWERS, SAVE THEM AND SEND FEEDBACKS BACK
 Route::post('/evaluateOneSection', 'ApiController@evaluateOneSection');
 

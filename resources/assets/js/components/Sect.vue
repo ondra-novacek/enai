@@ -27,19 +27,23 @@
          <!-- QUESTIONS -->
          <!-- we want to display list of questions only if there are any connected to the section, else dont show -->
          <div v-if="section[0].text">
-            <div v-for="(question,index) in section" class="grid-container">
+            <div v-for="(question,index) in section" class="grid-container" @mouseover="showArrows = question.question_id" @mouseleave="showArrows = 0">
                 <!-- <question @refresh="refresh()" v-for="question in section" :key="question.question_id" :qtypes="qtypes" :question="question" :opts="getOptions(question.question_id)"></question> -->
                 <div class="item1">
-                        <button class="btncust btn btn-sm" style="text-align:left" @click="openModal(question.question_id)">Modal</button>
+                        <!-- <button class="btncust btn btn-sm" style="text-align:left" @click="openModal(question.question_id)">Modal</button> -->
                     <button class="btncust btn btn-sm" style="text-align:left" title="edit this question" @click="questionClicked(index)"><i class="fas fa-edit"></i></button>
                     <button class="btncust btn btn-sm" style="text-align:left" title="delete this question" @click="deleteQuestion(question.question_id)"><i class="fas fa-trash"></i></button>
                     <button class="btncust btn btn-sm" style="text-align:left" title="change this question into different section" @click="shiftQuestionClicked(index)"><i class="fas fa-exchange-alt"></i></button>
+                    
                     Q {{index+1}}: 
                 </div>
                <div class="item2 qtext">
                     <span @click="questionClicked(index)">{{question.text}}</span>
                </div>
-                
+                <div class="item3">
+                    <button class="btncust btn btn-sm" v-show="showArrows == question.question_id" @click="move(question, false)" style="float:right"><i class="fas fa-arrow-down"></i></button>
+                    <button class="btncust btn btn-sm" v-show="showArrows == question.question_id" @click="move(question, true)" style="float:right"><i class="fas fa-arrow-up"></i></button>
+                </div>
                     <!-- <sweet-modal overlay-theme="dark" modal-theme="red" :ref="'modal-' + question.question_id" width="80%">
                         <sweet-modal-tab title="Question" id="tab1">
                             <TestComponent></TestComponent>
@@ -75,7 +79,7 @@
     import ExampleComponent from './ExampleComponent.vue';
     import AddQuestion from './AddQuestion.vue';
     import ShiftQuestion from './ShiftQuestion.vue';
-    import TestComponent from './TestComponent.vue';
+    //import TestComponent from './TestComponent.vue';
     import EventBus from '../event-bus.js';
     // import { SweetModal, SweetModalTab } from 'sweet-modal-vue';
 
@@ -88,7 +92,8 @@
                 msg: '',
                 showAddQ: false,
                 showShiftQ: '',
-                showQuestion: ''
+                showQuestion: '',
+                showArrows: 0
             }
         },
         components: {
@@ -96,7 +101,7 @@
             'addquestion': AddQuestion,
             'examplecomponent': ExampleComponent,
             'shiftquestion': ShiftQuestion,
-            TestComponent,
+            //TestComponent,
             // SweetModal,
 		    // SweetModalTab
         },
@@ -195,6 +200,110 @@
             openModal(id){
                 var name = 'modal-' + id;
                 this.$refs[name][0].open();
+            },
+            // change order of sections in survey
+            move (question, up) { // up == true => up; up == false => down;
+                //is lowest/highest
+                // const isEndPoint = this.isDisabled(question, up);
+                // if (isEndPoint) {
+                //     return false;
+                // }
+
+                //orderQ hasnt been declared yet
+                if (question.orderQ === null) {
+                    this.declareOrder(question, up);
+                    return;
+                }
+
+                //zjistit order value
+                let questionsStack = this.section;
+                let oldOrder = question.orderQ;
+                let questions = [];
+
+                //add default order
+                for (let i = 0; i < questionsStack.length; i++) {
+                    const qst = questionsStack[i];
+                    if (qst.orderQ === null) {
+                        qst.orderQ = i+1;
+                    }
+                }
+
+                // get section with nearest lower order (cz: zjistit sekci s nejblizsim mensim poradim)
+                if (up) {
+                    questionsStack.forEach(q => {
+                        if (q.orderQ < oldOrder) {
+                            questions.push(q);
+                        }
+                    })
+                }
+                else {
+                    questionsStack.forEach(q => {
+                        if (q.orderQ > oldOrder) {
+                            questions.push(q);
+                        }
+                    })
+                }
+                
+                let swapQuestion;
+                up ? swapQuestion = this.maxOrderValueId(questions) : swapQuestion = this.minOrderValueId(questions);
+
+                //test if its extrem value (cz: zjistit jestli to neni extrem)
+                if (swapQuestion == null) return false;
+
+                //swap values (cz: prohodit values)
+                axios.post('/api/swapQuestionOrder', {
+                    first: question,
+                    second: swapQuestion
+                })
+                .then(response => {
+                    this.refresh();
+                })
+                .catch(err => console.log(err));
+            },
+            maxOrderValueId(questions){
+                let length = questions.length;
+                let max = -1; //does not have to be -Infitity since the order value is unsigned
+                let question = null;
+                while (length--) {
+                    if (questions[length].orderQ > max) {
+                        max = questions[length].orderQ;
+                        question = questions[length];
+                    }
+                }
+                return question;
+            },
+            minOrderValueId(questions){
+                let length = questions.length;
+                let min = Infinity;
+                let question = null;
+                while (length--) {
+                    if (questions[length].orderQ < min) {
+                        min = questions[length].orderQ;
+                        question = questions[length];
+                    }
+                }
+                return question;
+            },
+            isDisabled(question, up){ //up = bool
+                let questions = [];
+                let questionsStack = this.section;
+                questionsStack.forEach(q => {
+                    questions.push(q);
+                });
+                let q = up ? this.minOrderValueId(questions) : this.maxOrderValueId(questions);
+                return q.orderQ == question.orderQ;
+            },
+            declareOrder(question, up){
+                axios.post('/api/declareQuestionsOrder', {
+                    id: question.subsection_id,
+                    questionid: question.question_id
+                })
+                .then(response => {
+                    //console.log(response.data);
+                    question.orderQ = response.data;
+                    this.move(question, up);
+                })
+                .catch(err => console.log(err));
             }
         },
         mounted(){
@@ -281,7 +390,7 @@ cursor: pointer;
 
 .grid-container{
     display: grid;
-    grid-template-columns: 13% 87%;
+    grid-template-columns: 13% 80% 7%;
     grid-gap: 1px;
 }
 

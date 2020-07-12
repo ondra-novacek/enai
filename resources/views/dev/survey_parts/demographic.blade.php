@@ -20,6 +20,7 @@
         <br>
         <label for="country"><strong>Country:</strong></label>
         <select class="custom-select" name='country' id='country'>
+            <option value='not_specified'>not specified</option>
             <option v-for="country in countries" v-bind:value='country'>@{{country}}</option>
         </select>
         <br><br>     
@@ -67,7 +68,7 @@
     <div class="alert alert-info" role="alert" v-if="err" v-text="err">
     </div>
 
-    <button class="btn btn-secondary" type="button" id="prevBtn" @click="nextPage(0)">Next</button>
+    <button class="btn btn-secondary saveform" type="button" id="prevBtn" @click="nextPage(0)">Next</button>
 </div></div></div></div></div>    
 </div>{{-- end of div onepart --}}
 {{-- END DEMO PART --}}

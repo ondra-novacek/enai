@@ -100,6 +100,7 @@ class PagesController extends Controller
                             ->with('question_column')
                             ->where('survey_questions.subsection_id', $sub)
                             ->where('survey_qfor_question.qfor_id', '=', $who)
+                            ->orderBy('survey_questions.orderQ')
                             ->orderBy('survey_questions.created_at')
                             ->get();
             if (count($pom) !== 0) { 
