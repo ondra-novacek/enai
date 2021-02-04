@@ -123,7 +123,7 @@
                                 
                                 @endforeach 
                                     
-                            <input type="hidden" name="_token" value="{{ csrf_token() }}"> 
+                            
                             
                             <br>
                             <div class="alert alert-info" role="alert" v-if="msg" v-text="msg">

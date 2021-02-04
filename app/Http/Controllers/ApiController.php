@@ -918,4 +918,24 @@ class ApiController extends Controller
 
         return $results;
     }
+
+    # save user visit
+    public function saveUserVisit(Request $request) {
+        $visit = \App\Visit::where('token', $request->token)->first();
+
+        if (!$visit) {
+            $visit = new \App\Visit();
+            $visit->token = $request->token;
+            $visit->save();
+        }
+    }
+
+    # update user visit
+    public function updateUserVisit(Request $request) {
+        $visit = \App\Visit::where('token', $request->token)->first();
+        if ($visit) {
+            $visit->finished = 1;
+            $visit->save();
+        }
+    }
 }

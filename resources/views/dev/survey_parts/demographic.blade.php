@@ -67,6 +67,8 @@
     </div> 
     <div class="alert alert-info" role="alert" v-if="err" v-text="err">
     </div>
+    
+    <input type="hidden" name="_token" value="{{ csrf_token() }}"> 
 
     <button class="btn btn-secondary saveform" type="button" id="prevBtn" @click="nextPage(0)">Next</button>
 </div></div></div></div></div>    

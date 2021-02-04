@@ -153,7 +153,7 @@ new Vue({
             } else {
                 let unanswered = this.DemoInputsValidator();
                 let agreementChecked = document.getElementById('agreement').checked;
-                // console.log(agreement)
+                this.saveUserVisit();
 
                 if ( ((this.err === '') && (unanswered == 0)) || (!agreementChecked)){
                     this.msg = '';
@@ -273,8 +273,34 @@ new Vue({
             }
             return notAnswered;
         },
+        saveUserVisit() {
+            let tokenElements = document.getElementsByName('_token');
+
+            if (typeof tokenElements[0].value !== 'undefined') {
+                let token = tokenElements[0].value;
+                axios.post(this.baseURL + '/api/saveuservisit', {'token': token})
+                .then((response)=>{
+                })
+                .catch((err)=>{console.log(err)});
+            }
+        },
         submitForm(){
+            // update survey_visits table
+            let tokenElements = document.getElementsByName('_token');
+
+            if (typeof tokenElements[0].value !== 'undefined') {
+                let token = tokenElements[0].value;
+                axios.post(this.baseURL + '/api/updateuservisit', {'token': token})
+                .then((response)=>{
+                    console.log(response.data);
+                })
+                .catch((err)=>{console.log(err)});
+            }
+
             document.getElementById("surForm").submit();
+
+            // clear localStorage
+            localStorage.clear();
             
         },
         getFeedbacks(answers, notChecked, qsSkipped){

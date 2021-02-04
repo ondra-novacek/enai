@@ -177,3 +177,7 @@ Route::delete('/deleteallresults', 'ApiController@deleteAllResults');
 Route::get('/getSubmittedDates', 'ApiController@getSubmittedDates');
 
 Route::get('/getRespondentsByCountry', 'ApiController@getRespondentsByCountry');
+
+########## STATISTICS ##########
+Route::post('/saveuservisit', 'ApiController@saveUserVisit');
+Route::post('/updateuservisit', 'ApiController@updateUserVisit');
