@@ -860,6 +860,7 @@ class ApiController extends Controller
     }
 
     public function getSubmittedDates(){
+        $months = [];
         $results = Result_Question::where(DB::raw('YEAR(created_at)'),DB::raw('YEAR(NOW())'))->groupBy('person_id')->orderBy(DB::raw('MONTH(max(created_at))'))->select(DB::raw("MONTHNAME(max(created_at)) as date"))->get();
         
         foreach ($results as $result) {
@@ -937,5 +938,30 @@ class ApiController extends Controller
             $visit->finished = 1;
             $visit->save();
         }
+    }
+
+    # get all users visits
+    public function getAllUsersVisits() {
+        $visits = \App\Visit::groupBy(DB::raw("YEAR(created_at)"), DB::raw("MONTH(created_at)"), "finished")
+                    ->select(DB::raw("YEAR(created_at) as year"), DB::raw("MONTH(created_at) as month"), DB::raw("count(*) as count"), "finished")
+                    ->orderBy(DB::raw("YEAR(created_at)"), "asc", DB::raw("MONTH(created_at)"), "asc")
+                    ->limit(12)
+                    ->get();
+
+        $visitsAll = [];
+        $visitsFinished = [];
+        foreach ($visits as $month) {
+            $key = $month['year'] . '-' . $month['month'];
+
+            if (!isset($visitsFinished[$key])) $visitsFinished[$key] = 0;
+            if (!isset($visitsAll[$key])) $visitsAll[$key] = 0;
+
+            if ($month->finished) {
+                $visitsFinished[$key] += $month->count;
+            }
+            $visitsAll[$key] += $month->count;
+        }
+
+        return [$visitsAll, $visitsFinished];
     }
 }

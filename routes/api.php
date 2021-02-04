@@ -127,9 +127,6 @@ Route::post('/editsection', 'ApiController@editSection');
 ## DELETE SECTION
 Route::post('/deletesection', 'ApiController@deleteSection');
 
-## GET RESULTS
-Route::get('/getresults', 'ApiResultsController@getAllResults');
-
 ## EDIT EVALUALTION FOR A SECTION
 Route::post('/editeval', 'ApiController@editEval');
 
@@ -178,6 +175,9 @@ Route::get('/getSubmittedDates', 'ApiController@getSubmittedDates');
 
 Route::get('/getRespondentsByCountry', 'ApiController@getRespondentsByCountry');
 
+Route::get('/getresults', 'ApiResultsController@getAllResults');
+
 ########## STATISTICS ##########
 Route::post('/saveuservisit', 'ApiController@saveUserVisit');
 Route::post('/updateuservisit', 'ApiController@updateUserVisit');
+Route::get('/getAllUsersVisits', 'ApiController@getAllUsersVisits');

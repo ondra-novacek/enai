@@ -1,5 +1,5 @@
 <template>
-        <main>
+    <main>
     
         <input id="tab1" type="radio" name="tabs" checked>
         <label for="tab1"><i class="fas fa-clipboard-list"></i> Tests</label>
@@ -17,13 +17,6 @@
         <label for="tab5"><i class="fas fa-info-circle"></i> Help</label>
     
         <section id="content1">
-                <!-- <div class="card-deck" v-if="fortypes.length > 0">
-                    <div class="card bg-light" v-for="fortype in fortypes">
-                        <div class="card-body text-center uppercase">
-                            <p class="card-text"><router-link :to="{name: 'edit', params: {id: fortype.id}}">{{fortype.name}}</router-link></p>
-                        </div>
-                    </div>    
-                </div> -->
                 <div class="card-deck" v-if="fortypes.length > 0">
                     <div class="card cardcust" v-for="fortype in fortypes">
                     <router-link :to="{name: 'edit', params: {id: fortype.id}}">
@@ -67,10 +60,14 @@
             <br>
             <hr>
             <h3>Graphs</h3>
-            <button class="btn btn-md btn-outline-primary" @click="showChart ? showChart = 0 : showChart = 1">Number of respondents per month</button>
-            <chart v-if="showChart" :months="months" :numbers="numbers"></chart>
+            <!-- Deprecated -->
+            <!-- <button class="btn btn-md btn-outline-primary" @click="showChart = !showChart">Saved respondents per month</button>
+            <chart v-if="showChart" :months="months" :numbers="numbers"></chart> -->
             <br>
-            <button class="btn btn-md btn-outline-secondary" @click="showChart2 ? showChart2 = 0 : showChart2 = 1">Respondents by country</button>
+            <button class="btn btn-md btn-outline-primary" @click="showChartAll = !showChartAll">All respondents per month</button>
+            <chartallusers v-if="showChartAll" :months="allMonths" :finishedNumbers="finishedNumbers" :numbers="allNumbers"></chartallusers>
+            <br>
+            <button class="btn btn-md btn-outline-secondary" @click="showChart2 = !showChart2">Respondents by country</button>
             <piechart v-if="showChart2" :countries="countries" :countriesNum="countriesNum"></piechart>
             
         </section>
@@ -80,106 +77,111 @@
         </section>
     
     </main>
-    </template>
+</template>
     
-    <script>
-        import UserGuide from './UserGuide.vue';
-        import Evaluations from './Evaluations.vue';
-        import EvaluationsFinal from './EvaluationsFinal.vue';
-        import Chart from './Chart.vue';
-        import PieChart from './PieChart.vue';
+<script>
+    import UserGuide from './UserGuide.vue';
+    import Evaluations from './Evaluations.vue';
+    import EvaluationsFinal from './EvaluationsFinal.vue';
+    import Chart from './Chart.vue';
+    import ChartAllUsers from './ChartAllUsers.vue';
+    import PieChart from './PieChart.vue';
 
-        export default {
-            data (){
-                return {
-                    test: {},
-                    surveyshow: false,
-                    fortypes: [],
-                    // surveyId: 1 //hardcoded
-                    notcreated: false,
-                    showChart: 0,
-                    months: [],
-                    numbers: [],
-                    showChart2: 0,
-                    countries: [],
-                    countriesNum: []
-                } 
-            },
-            components: {
-                'user-guide': UserGuide,
-                'evaluations': Evaluations,
-                'evaluationsfinal': EvaluationsFinal,
-                'chart': Chart,
-                'piechart': PieChart
-            },
-            beforeRouteEnter (to, from, next) {
-            //this needs to be done so the data is on the site when it renders
-                next(vm => {
-                    //results
-                    // axios.get('/api/getresults')
-                    // .then(response => {vm.results = response.data})
-                    // .catch(e => console.log(e));
-                    
-                    axios.get('/api/getSubmittedDates')
-                    .then(response => {
-                        vm.months = Object.keys(response.data);
-                        vm.numbers = Object.values(response.data);
-                    })
-                    .catch(e => {console.log(e);})
+    export default {
+        data (){
+            return {
+                test: {},
+                surveyshow: false,
+                fortypes: [],
+                notcreated: false,
+                showChart: 0,
+                months: [],
+                numbers: [],
+                allMonths: [],
+                allNumbers: [],
+                finishedMonths: [],
+                finishedNumbers: [],
+                showChart2: 0,
+                showChartAll: 0,
+                countries: [],
+                countriesNum: []
+            } 
+        },
+        components: {
+            'user-guide': UserGuide,
+            'evaluations': Evaluations,
+            'evaluationsfinal': EvaluationsFinal,
+            'chart': Chart,
+            'chartallusers': ChartAllUsers,
+            'piechart': PieChart
+        },
+        beforeRouteEnter (to, from, next) {
+        //this needs to be done so the data is on the site when it renders
+            next(vm => {
+                axios.get('/api/getAllUsersVisits')
+                .then(response => {
+                    let allVisits = response.data[0];
+                    vm.allMonths = Object.keys(allVisits);
+                    vm.allNumbers = Object.values(allVisits);
 
-                    axios.get('/api/getRespondentsByCountry')
-                    .then(response => {
-                        vm.countries = Object.keys(response.data);
-                        vm.countriesNum = Object.values(response.data);
-                    })
-                    .catch(e => {console.log(e);})
-
-                    next();
+                    let finishedVisits = response.data[1];
+                    vm.finishedMonths = Object.keys(finishedVisits);
+                    vm.finishedNumbers = Object.values(finishedVisits);
                 })
-            }, 
-            methods: {
-                getData() {
-                    axios.get('/api/surveys')
-                    .then(response => {
-                        this.fortypes = response.data;
-                        if (this.fortypes.length == 0){this.notcreated = true}
-                        // console.log(this.fortypes);
-                    });
-                },
-                routeToResults(){
-                    this.$router.push({name: 'unfilteredResults'});
-                },
-                routeToEvaluations(){
-                    this.$router.push({name: 'evaluations'});
-                },
-                routeToFinalEvaluations(){
-                    this.$router.push({name: 'finalevaluations'});
-                },
-                start(){
-                    axios.get('/api/createsurveys')
-                    .then(response => {
-                        this.getData();
-                    })
-                    .catch(e => {});
-                    this.notcreated = false;
-                }
-            },
-            mounted(){
-                this.getData();
+                .catch(e => {console.log(e);})
+                
+                axios.get('/api/getSubmittedDates')
+                .then(response => {
+                    vm.months = Object.keys(response.data);
+                    vm.numbers = Object.values(response.data);
+                })
+                .catch(e => {console.log(e);})
+
                 axios.get('/api/getRespondentsByCountry')
-                    .then(response => {
-                        //console.log(response.data);
-                    })
-                    .catch(e => {console.log(e); return []})
+                .then(response => {
+                    vm.countries = Object.keys(response.data);
+                    vm.countriesNum = Object.values(response.data);
+                })
+                .catch(e => {console.log(e);})
+
+                next();
+            })
+        }, 
+        methods: {
+            getData() {
+                axios.get('/api/surveys')
+                .then(response => {
+                    this.fortypes = response.data;
+                    if (this.fortypes.length == 0){this.notcreated = true}
+                });
+            },
+            routeToResults(){
+                this.$router.push({name: 'unfilteredResults'});
+            },
+            routeToEvaluations(){
+                this.$router.push({name: 'evaluations'});
+            },
+            routeToFinalEvaluations(){
+                this.$router.push({name: 'finalevaluations'});
+            },
+            start(){
+                axios.get('/api/createsurveys')
+                .then(response => {
+                    this.getData();
+                })
+                .catch(e => {});
+                this.notcreated = false;
             }
+        },
+        mounted(){
+            this.getData();
         }
-    </script>
+    }
+</script>
     
-    <style scoped>
+<style scoped>
     @import url('https://fonts.googleapis.com/css?family=Open+Sans:400,600,700');
     @import url('https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css');
-    
-    /* *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}html,body{height:100vh;}body{display:flex;align-items:center;justify-content:center;padding:40px;font:14px/1.5 'Open Sans',sans-serif;color:#345;background:#f0f2f4;} */
     
     p:not(:last-child) {
       margin: 0 0 20px;
@@ -221,11 +223,6 @@
       margin-right: 10px;
     }
     
-    /* label[for*='1']:before { content: '\f1cb'; } */
-    /* label[for*='2']:before { content: '\f17d'; } */
-    /* label[for*='3']:before { content: '\f16c'; } */
-    /* label[for*='4']:before { content: '\f171'; } */
-    
     label:hover {
       color: #789;
       cursor: pointer;
@@ -262,54 +259,54 @@
       }
     }
 
-.tab-slider--nav{
-	width: 100%;
-	float: left;
-	margin-bottom: 20px;
-}
-.tab-slider--tabs{
-	display: block;
-	float: left;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-	position: relative;
-	border-radius: 35px;
-	overflow: hidden;
-	background: #fff;
-	height: 35px;
-	user-select: none; 
-}
+    .tab-slider--nav{
+        width: 100%;
+        float: left;
+        margin-bottom: 20px;
+    }
+    .tab-slider--tabs{
+        display: block;
+        float: left;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        position: relative;
+        border-radius: 35px;
+        overflow: hidden;
+        background: #fff;
+        height: 35px;
+        user-select: none; 
+    }
 
-.tab-slider--trigger {
-	font-size: 12px;
-	line-height: 1;
-	font-weight: bold;
-	color: #345F90;
-	text-transform: uppercase;
-	text-align: center;
-	padding: 11px 20px;
-	position: relative;
-	z-index: 2;
-	cursor: pointer;
-	display: inline-block;
-	user-select: none; 
-}
+    .tab-slider--trigger {
+        font-size: 12px;
+        line-height: 1;
+        font-weight: bold;
+        color: #345F90;
+        text-transform: uppercase;
+        text-align: center;
+        padding: 11px 20px;
+        position: relative;
+        z-index: 2;
+        cursor: pointer;
+        display: inline-block;
+        user-select: none; 
+    }
 
 
-.uppercase{
-    text-transform: uppercase;
-}
+    .uppercase{
+        text-transform: uppercase;
+    }
 
-a{
-    text-decoration: none;
-    color: #2BBBAD;
-}
+    a{
+        text-decoration: none;
+        color: #2BBBAD;
+    }
 
-.card, .carddeck, .cardbody{
-    box-shadow: none !important;
-}
+    .card, .carddeck, .cardbody{
+        box-shadow: none !important;
+    }
 
-    </style>
+</style>
     
     
